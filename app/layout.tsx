@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import './extra.css';
+import './nav.css';
 
 export const metadata: Metadata = {
   title: 'Dalecom | Preventivo immediato',
