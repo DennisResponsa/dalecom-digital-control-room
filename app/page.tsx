@@ -368,7 +368,7 @@ export default function Home() {
         ? 0
         : service === "semifreddo"
           ? 630 * Number(duration)
-          : 1116 * Number(duration);
+          : 558 * Number(duration);
     const extras =
       (shift === "notturno" ? 450 : 0) + (access === "difficile" ? 380 : 0);
     return {
