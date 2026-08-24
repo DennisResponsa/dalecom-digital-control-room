@@ -323,7 +323,6 @@ export default function Home() {
   const [city, setCity] = useState("Treviso");
   const [volume, setVolume] = useState("80");
   const [totalVolume, setTotalVolume] = useState("400");
-  const [weeklyPours, setWeeklyPours] = useState("2");
   const [reach, setReach] = useState("36");
   const [access, setAccess] = useState("standard");
   const [granulometry, setGranulometry] = useState("D20");
@@ -384,11 +383,12 @@ export default function Home() {
       : durationDays === 1
         ? "1 giornata"
         : `${durationDays} giornate`;
-  const rentalWeeks = Math.max(1, Math.ceil(durationDays / 5));
-  const crewDays = Math.min(
-    durationDays,
-    Math.max(1, Number(weeklyPours) || 1) * rentalWeeks,
+  const volumePerPour = Math.max(1, Number(volume) || 1);
+  const totalPours = Math.max(
+    1,
+    Math.ceil((Number(totalVolume) || volumePerPour) / volumePerPour),
   );
+  const crewDays = Math.min(durationDays, totalPours);
   const pumpCrew = service === "freddo" ? 0 : service === "semifreddo" ? 1 : 2;
   const boomCrew = needBoom === "si" ? 2 : 0;
   const crewPeople = pumpCrew + boomCrew;
@@ -465,7 +465,7 @@ export default function Home() {
       `Macchina: ${selectedAsset.name}`,
       `Volume indicativo per getto: ${volume} m³`,
       `Volume totale: ${totalVolume} m³`,
-      `Numero getti settimanali: ${weeklyPours}`,
+      `Numero totale getti previsti: ${totalPours}`,
       `Granulometria: ${granulometry.replace("D", "Dmax ")} mm`,
       `Linea: ${lineMeters} m (${ironTubes} tubi ferro + ${rubberTubes} gomma, ${curveCount} curve, ${kitCount} kit)`,
       `Quota getto: ${elevation} m · Edificio: ${floors} piani`,
@@ -670,14 +670,14 @@ export default function Home() {
                   />
                 </label>
                 <label>
-                  Numero di getti settimanali
+                  Numero totale di getti previsti
                   <input
                     type="number"
                     min="1"
-                    max="50"
-                    value={weeklyPours}
-                    onChange={(e) => setWeeklyPours(e.target.value)}
+                    value={totalPours}
+                    readOnly
                   />
+                  <small>Calcolato automaticamente dal volume totale diviso il volume per singolo getto.</small>
                 </label>
                 <label>
                   Granulometria calcestruzzo
@@ -1015,7 +1015,7 @@ export default function Home() {
                     {elevation} m · {floors} piani
                   </span>
                   <span>
-                    {volume} m³ per getto · {totalVolume} m³ totali · {weeklyPours} getti/settimana
+                    {volume} m³ per getto · {totalVolume} m³ totali · {totalPours} getti previsti
                   </span>
                   <small>
                     {ironTubes} tubi ferro + {rubberTubes} tubo gomma da 3 m · {curveCount} curve · {kitCount} kit
