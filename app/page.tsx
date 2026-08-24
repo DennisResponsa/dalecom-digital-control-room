@@ -104,12 +104,6 @@ const equipmentOptions = [
     "460",
   ],
   [
-    "braccio",
-    "Braccio stazionario",
-    "Per cantieri verticali o di lunga durata",
-    "720",
-  ],
-  [
     "malte",
     "Pompa per malte / intonaci",
     "Per sottofondi, malte e materiali speciali",
@@ -309,6 +303,8 @@ export default function Home() {
   const [province, setProvince] = useState("Treviso");
   const [city, setCity] = useState("Treviso");
   const [volume, setVolume] = useState("80");
+  const [totalVolume, setTotalVolume] = useState("400");
+  const [weeklyPours, setWeeklyPours] = useState("2");
   const [reach, setReach] = useState("36");
   const [access, setAccess] = useState("standard");
   const [granulometry, setGranulometry] = useState("D20");
@@ -429,6 +425,9 @@ export default function Home() {
       ``,
       `Lavorazione: ${intervention}`,
       `Macchina: ${selectedAsset.name}`,
+      `Volume indicativo per getto: ${volume} m³`,
+      `Volume totale: ${totalVolume} m³`,
+      `Numero getti settimanali: ${weeklyPours}`,
       `Granulometria: ${granulometry.replace("D", "Dmax ")} mm`,
       `Linea: ${lineMeters} m (${ironTubes} tubi ferro + ${rubberTubes} gomma, ${curveCount} curve, ${kitCount} kit)`,
       `Quota getto: ${elevation} m · Edificio: ${floors} piani`,
@@ -613,12 +612,31 @@ export default function Home() {
                   <input readOnly value={`${place.km} km`} />
                 </label>
                 <label>
-                  Volume indicativo (m³)
+                  Volume indicativo per singolo getto (m³)
                   <input
                     type="number"
                     min="1"
                     value={volume}
                     onChange={(e) => setVolume(e.target.value)}
+                  />
+                </label>
+                <label>
+                  Volume totale calcestruzzo (m³)
+                  <input
+                    type="number"
+                    min="1"
+                    value={totalVolume}
+                    onChange={(e) => setTotalVolume(e.target.value)}
+                  />
+                </label>
+                <label>
+                  Numero di getti settimanali
+                  <input
+                    type="number"
+                    min="1"
+                    max="50"
+                    value={weeklyPours}
+                    onChange={(e) => setWeeklyPours(e.target.value)}
                   />
                 </label>
                 <label>
@@ -665,26 +683,18 @@ export default function Home() {
                     onChange={(e) => setFloors(e.target.value)}
                   />
                 </label>
-                <label>
-                  Sbraccio / altezza
+                {needBoom === "si" && <label>
+                  Sbraccio
                   <select
-                    value={
-                      equipment === "malte" || equipment === "accessori"
-                        ? "0"
-                        : reach
-                    }
-                    disabled={
-                      equipment === "malte" || equipment === "accessori"
-                    }
+                    value={reach}
                     onChange={(e) => setReach(e.target.value)}
                   >
-                    <option value="0">Non applicabile</option>
                     <option value="20">Fino a 20 m</option>
                     <option value="28">Fino a 28 m</option>
                     <option value="36">Fino a 36 m</option>
                     <option value="42">Oltre 36 m</option>
                   </select>
-                </label>
+                </label>}
                 <label>
                   Accessibilità del piazzamento
                   <select
@@ -948,6 +958,9 @@ export default function Home() {
                     Granulometria {granulometry.replace("D", "Dmax ")} mm ·
                     sviluppo {lineMeters} m · quota {Number(elevation) >= 0 ? "+" : ""}
                     {elevation} m · {floors} piani
+                  </span>
+                  <span>
+                    {volume} m³ per getto · {totalVolume} m³ totali · {weeklyPours} getti/settimana
                   </span>
                   <small>
                     {ironTubes} tubi ferro + {rubberTubes} tubo gomma da 3 m · {curveCount} curve · {kitCount} kit
