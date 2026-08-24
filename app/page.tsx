@@ -9,6 +9,7 @@ type Asset = {
   qty: number;
   status: string;
   specs: string[];
+  maxAggregate: number;
 };
 const areas: Record<string, Record<string, Place[]>> = {
   Veneto: {
@@ -118,6 +119,7 @@ const assetsByEquipment: Record<string, Asset[]> = {
       site: "Paese",
       qty: 2,
       status: "Disponibile",
+      maxAggregate: 32,
       specs: [
         "Braccio verticale 20 m",
         "Ingombro compatto",
@@ -130,6 +132,7 @@ const assetsByEquipment: Record<string, Asset[]> = {
       site: "Bareggio",
       qty: 1,
       status: "Disponibile",
+      maxAggregate: 32,
       specs: [
         "Braccio verticale 36 m",
         "Portata elevata",
@@ -144,6 +147,7 @@ const assetsByEquipment: Record<string, Asset[]> = {
       site: "Paese",
       qty: 1,
       status: "Disponibile",
+      maxAggregate: 32,
       specs: ["Larghezza ridotta", "Radiocomando", "Accessi urbani e cortili"],
     },
     {
@@ -152,6 +156,7 @@ const assetsByEquipment: Record<string, Asset[]> = {
       site: "Bareggio",
       qty: 1,
       status: "Disponibile",
+      maxAggregate: 32,
       specs: [
         "Elevata manovrabilità",
         "Tubazione modulare",
@@ -166,6 +171,7 @@ const assetsByEquipment: Record<string, Asset[]> = {
       site: "Paese",
       qty: 1,
       status: "Disponibile",
+      maxAggregate: 16,
       specs: ["Portata 17,4 m³/h", "Trainabile", "Lunghe distanze orizzontali"],
     },
     {
@@ -174,6 +180,7 @@ const assetsByEquipment: Record<string, Asset[]> = {
       site: "Bareggio",
       qty: 3,
       status: "Disponibile",
+      maxAggregate: 35,
       specs: [
         "Portata 30 m³/h",
         "Sottocarro cingolato",
@@ -188,6 +195,7 @@ const assetsByEquipment: Record<string, Asset[]> = {
       site: "Paese",
       qty: 1,
       status: "Disponibile",
+      maxAggregate: 32,
       specs: [
         "Sbraccio 28 m",
         "Installazione su colonna",
@@ -200,6 +208,7 @@ const assetsByEquipment: Record<string, Asset[]> = {
       site: "Bareggio",
       qty: 1,
       status: "Disponibile",
+      maxAggregate: 32,
       specs: ["Sbraccio 36 m", "Quattro sezioni", "Grandi cantieri verticali"],
     },
   ],
@@ -210,6 +219,7 @@ const assetsByEquipment: Record<string, Asset[]> = {
       site: "Paese",
       qty: 1,
       status: "Disponibile",
+      maxAggregate: 8,
       specs: [
         "Malte, intonaci e boiacche",
         "Miscelatore integrato",
@@ -222,6 +232,7 @@ const assetsByEquipment: Record<string, Asset[]> = {
       site: "Bareggio",
       qty: 1,
       status: "Disponibile",
+      maxAggregate: 8,
       specs: [
         "Massetti sabbia-cemento",
         "Trasporto pneumatico",
@@ -236,6 +247,7 @@ const assetsByEquipment: Record<string, Asset[]> = {
       site: "Paese",
       qty: 2,
       status: "Disponibile",
+      maxAggregate: 32,
       specs: [
         "Portata aria 3.000 l/min",
         "Trainabile",
@@ -248,6 +260,7 @@ const assetsByEquipment: Record<string, Asset[]> = {
       site: "Paese",
       qty: 18,
       status: "Disponibile",
+      maxAggregate: 32,
       specs: [
         "Tratte modulari",
         "Curve e raccordi inclusi",
@@ -285,6 +298,12 @@ const interventions: Record<string, string[]> = {
   ],
 };
 const steps = ["Servizio", "Cantiere", "Periodo", "Verifica", "Preventivo"];
+const aggregateOptions: Record<string, number[]> = {
+  autopompa: [8, 16, 20, 25, 32],
+  city: [8, 16, 20, 25, 32],
+  carrellata: [8, 16, 20, 25, 32],
+  malte: [8],
+};
 
 function logisticsFor(km: number) {
   if (km <= 50) return { band: "Fino a 50 km", oneWay: 2600 };
@@ -334,7 +353,10 @@ export default function Home() {
   const selectedEquipment =
     equipmentOptions.find((x) => x[0] === equipment) ?? equipmentOptions[0];
   const logistics = logisticsFor(place.km);
-  const matchedAssets = assetsByEquipment[equipment];
+  const aggregateSize = Number(granulometry.replace("D", ""));
+  const matchedAssets = assetsByEquipment[equipment].filter(
+    (asset) => aggregateSize <= asset.maxAggregate,
+  );
   const selectedAsset = matchedAssets[assetIndex] ?? matchedAssets[0];
   const lineMeters =
     Math.max(0, Number(lineDistance) || 0) + Math.abs(Number(elevation) || 0);
@@ -403,6 +425,9 @@ export default function Home() {
   };
   const chooseEquipment = (v: string) => {
     setEquipment(v);
+    if (!aggregateOptions[v].includes(Number(granulometry.replace("D", "")))) {
+      setGranulometry(`D${aggregateOptions[v][0]}`);
+    }
     setIntervention(interventions[v][0]);
     setAssetIndex(0);
     setDetailsIndex(null);
@@ -645,13 +670,17 @@ export default function Home() {
                   Granulometria calcestruzzo
                   <select
                     value={granulometry}
-                    onChange={(e) => setGranulometry(e.target.value)}
+                    onChange={(e) => {
+                      setGranulometry(e.target.value);
+                      setAssetIndex(0);
+                      setDetailsIndex(null);
+                    }}
                   >
-                    <option value="D8">Dmax 8 mm</option>
-                    <option value="D16">Dmax 16 mm</option>
-                    <option value="D20">Dmax 20 mm</option>
-                    <option value="D25">Dmax 25 mm</option>
-                    <option value="D32">Dmax 32 mm</option>
+                    {aggregateOptions[equipment].map((size) => (
+                      <option key={size} value={`D${size}`}>
+                        Dmax {size} mm
+                      </option>
+                    ))}
                   </select>
                 </label>
                 <label>
@@ -835,8 +864,8 @@ export default function Home() {
                 <div>
                   <h2>Scegli la macchina disponibile</h2>
                   <p>
-                    Entrambe le soluzioni sono compatibili con “{intervention}”.
-                    Seleziona quella che preferisci.
+                    Sono mostrate solo le soluzioni compatibili con “{intervention}”
+                    e con la granulometria {granulometry.replace("D", "Dmax ")} mm.
                   </p>
                 </div>
               </div>
@@ -897,6 +926,7 @@ export default function Home() {
                       <div className="asset-details">
                         <b>Caratteristiche principali</b>
                         <ul>
+                          <li>Granulometria massima: Dmax {m.maxAggregate} mm</li>
                           {m.specs.map((s) => (
                             <li key={s}>{s}</li>
                           ))}
