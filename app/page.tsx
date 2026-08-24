@@ -115,12 +115,6 @@ const equipmentOptions = [
     "Per sottofondi, malte e materiali speciali",
     "190",
   ],
-  [
-    "accessori",
-    "Attrezzature e accessori",
-    "Tubazioni, compressori e dotazioni di supporto",
-    "80",
-  ],
 ];
 const assetsByEquipment: Record<string, Asset[]> = {
   autopompa: [
@@ -527,7 +521,7 @@ export default function Home() {
                   </button>
                 ))}
               </div>
-              <h4 className="group-title">Macchina o attrezzatura</h4>
+              <h4 className="group-title">Macchina principale</h4>
               <div className="equipment-grid">
                 {equipmentOptions.map((x) => (
                   <button
