@@ -416,10 +416,10 @@ export default function Home() {
     setDuration(String(nextDuration ?? minimumDurationDays));
   }, [durationDays, minimumDurationDays]);
   const clientValid =
-    client.company.trim().length > 1 &&
-    client.name.trim().length > 2 &&
+    client.company.trim().length > 0 &&
+    client.name.trim().length > 0 &&
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(client.email) &&
-    client.phone.trim().length > 5 &&
+    client.phone.trim().length > 0 &&
     client.privacy;
   const quote = useMemo(() => {
     const rental = Number(selectedEquipment[3]) * Number(duration);
@@ -513,7 +513,8 @@ export default function Home() {
       ``,
       `Riferimento: DL-2026-0826`,
     ].join("\n");
-    window.location.href = `mailto:dennis.cumerlato@gmail.com?cc=${encodeURIComponent("riolfatti.thomas76@gmail.com")}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const gmailCompose = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent("dennis.cumerlato@gmail.com")}&cc=${encodeURIComponent("riolfatti.thomas76@gmail.com")}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(gmailCompose, "_blank", "noopener,noreferrer");
   };
   return (
     <main>
@@ -1201,6 +1202,7 @@ export default function Home() {
                     <label className="privacy-check">
                       <input
                         type="checkbox"
+                        required
                         checked={client.privacy}
                         onChange={(e) =>
                           updateClient("privacy", e.target.checked)
@@ -1223,9 +1225,8 @@ export default function Home() {
                     <button
                       type="submit"
                       className="primary"
-                      disabled={!clientValid}
                     >
-                      Invia dati e genera PDF
+                      Prepara email e genera PDF
                     </button>
                   </div>
                 </form>
@@ -1234,8 +1235,9 @@ export default function Home() {
                   <div className="confirmation-box">
                     <b>✓ Dati cliente acquisiti</b>
                     <span>
-                      La richiesta email è stata preparata per Dalecom. Il
-                      preventivo personalizzato è ora disponibile.
+                      Gmail è stato aperto con la richiesta già compilata: il
+                      cliente deve solo confermare l’invio. Il preventivo
+                      personalizzato è ora disponibile.
                     </span>
                   </div>
                   <div className="quote-actions">
