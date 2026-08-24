@@ -476,8 +476,16 @@ export default function Home() {
   const submitLead = () => {
     if (!clientValid) return;
     setConfirmed(true);
-    const subject = `Richiesta preventivo Dalecom · ${client.company} · DL-2026-0826`;
+    const subject = `${access === "difficile" ? "CONCORDARE SOPRALLUOGO · " : ""}Richiesta preventivo Dalecom · ${client.company} · DL-2026-0826`;
     const body = [
+      ...(access === "difficile"
+        ? [
+            `========================================`,
+            `⚠  CONCORDARE SOPRALLUOGO  ⚠`,
+            `========================================`,
+            ``,
+          ]
+        : []),
       `Nuovo lead dal configuratore Dalecom`,
       ``,
       `Azienda: ${client.company}`,
@@ -501,7 +509,7 @@ export default function Home() {
       `Periodo: ${durationLabel} dal ${new Date(date).toLocaleDateString("it-IT")}`,
       `Personale previsto: ${crewPeople} ${crewPeople === 1 ? "persona" : "persone"} per ${crewPeople === 0 ? 0 : crewDays} ${crewDays === 1 ? "giornata" : "giornate"}`,
       `Tubazioni: ${ironTubes + rubberTubes} pezzi per un totale di € ${tubeCost.toLocaleString("it-IT")}`,
-      `Totale indicativo: € ${quote.total.toLocaleString("it-IT")}`,
+      `Totale indicativo${access === "difficile" ? " salvo sopralluogo" : ""}: € ${quote.total.toLocaleString("it-IT")}`,
       ``,
       `Riferimento: DL-2026-0826`,
     ].join("\n");
@@ -1118,9 +1126,9 @@ export default function Home() {
                 </div>
                 <div className="total">
                   <span>
-                    Totale indicativo
+                    Totale indicativo{access === "difficile" ? " salvo sopralluogo" : ""}
                     <small>
-                      IVA esclusa · conferma tecnica soggetta a sopralluogo
+                      IVA esclusa · {access === "difficile" ? "importo da confermare dopo il sopralluogo" : "conferma tecnica finale Dalecom"}
                     </small>
                   </span>
                   <strong>€ {quote.total.toLocaleString("it-IT")}</strong>
