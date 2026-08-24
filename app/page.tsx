@@ -474,7 +474,7 @@ export default function Home() {
       `Cantiere: ${city} (${place.km} km da Paese)`,
       `Periodo: ${durationLabel} dal ${new Date(date).toLocaleDateString("it-IT")}`,
       `Personale previsto: ${crewPeople} ${crewPeople === 1 ? "persona" : "persone"} per ${crewPeople === 0 ? 0 : crewDays} ${crewDays === 1 ? "giornata" : "giornate"}`,
-      `Tubazioni: € ${tubeCost.toLocaleString("it-IT")}`,
+      `Tubazioni: ${ironTubes + rubberTubes} pezzi per un totale di € ${tubeCost.toLocaleString("it-IT")}`,
       `Totale indicativo: € ${quote.total.toLocaleString("it-IT")}`,
       ``,
       `Riferimento: DL-2026-0826`,
@@ -1037,11 +1037,11 @@ export default function Home() {
                     </div>
                   )}
                   <div>
-                    <span>Allestimento cantiere · {logistics.band}</span>
+                    <span>Allestimento cantiere · una tantum · {logistics.band}</span>
                     <b>€ {logistics.oneWay.toLocaleString("it-IT")}</b>
                   </div>
                   <div>
-                    <span>Disallestimento e rientro</span>
+                    <span>Disallestimento e rientro · una tantum</span>
                     <b>€ {logistics.oneWay.toLocaleString("it-IT")}</b>
                   </div>
                   {quote.extras > 0 && (
@@ -1052,7 +1052,7 @@ export default function Home() {
                   )}
                   <div>
                     <span>
-                      Tubazioni · {ironTubes + rubberTubes} pezzi
+                      Tubazioni · {ironTubes + rubberTubes} pezzi · per un totale di
                     </span>
                     <b>€ {quote.tubes.toLocaleString("it-IT")}</b>
                   </div>
