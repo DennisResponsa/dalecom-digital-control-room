@@ -398,6 +398,16 @@ export default function Home() {
   const pumpCrew = service === "freddo" ? 0 : service === "semifreddo" ? 1 : 2;
   const boomCrew = needBoom === "si" ? 2 : 0;
   const crewPeople = pumpCrew + boomCrew;
+  const compressorCost =
+    needCompressor !== "si"
+      ? 0
+      : durationDays < 5
+        ? 120 * durationDays
+        : durationDays < 20
+          ? 430 * Math.ceil(durationDays / 5)
+          : durationDays === 20
+            ? 1300
+            : 1300 + 430 * Math.ceil((durationDays - 20) / 5);
   useEffect(() => {
     if (durationDays >= minimumDurationDays) return;
     const nextDuration = [1, 3, 5, 10, 15, 20].find(
@@ -422,9 +432,10 @@ export default function Home() {
       extras,
       tubes: tubeCost,
       boom: boomCost,
+      compressor: compressorCost,
       transport: logistics.oneWay * 2,
       total:
-        rental + crew + extras + tubeCost + boomCost + logistics.oneWay * 2,
+        rental + crew + extras + tubeCost + boomCost + compressorCost + logistics.oneWay * 2,
     };
   }, [
     selectedEquipment,
@@ -437,6 +448,7 @@ export default function Home() {
     logistics,
     tubeCost,
     boomCost,
+    compressorCost,
   ]);
   const chooseRegion = (v: string) => {
     setRegion(v);
@@ -484,7 +496,7 @@ export default function Home() {
       `Linea: ${lineMeters} m (${ironTubes} tubi ferro + ${rubberTubes} gomma, ${curveCount} curve, ${kitCount} kit)`,
       `Quota getto: ${elevation} m · Edificio: ${floors} piani`,
       `Braccio aggiuntivo: ${needBoom === "si" ? "Sì" : "No"}`,
-      `Compressore: ${needCompressor === "si" ? "Richiesto" : "Non richiesto"}`,
+      `Compressore: ${needCompressor === "si" ? `ROTAIR MDVN53 · € ${compressorCost.toLocaleString("it-IT")}` : "Non richiesto"}`,
       `Cantiere: ${city} (${place.km} km da Paese)`,
       `Periodo: ${durationLabel} dal ${new Date(date).toLocaleDateString("it-IT")}`,
       `Personale previsto: ${crewPeople} ${crewPeople === 1 ? "persona" : "persone"} per ${crewPeople === 0 ? 0 : crewDays} ${crewDays === 1 ? "giornata" : "giornate"}`,
@@ -1055,7 +1067,7 @@ export default function Home() {
                   <small>
                     {ironTubes} tubi ferro + {rubberTubes} tubo gomma da 3 m · {curveCount} curve · {kitCount} kit
                     {needBoom === "si" ? " · braccio stazionario richiesto" : ""}
-                    {needCompressor === "si" ? " · compressore richiesto" : ""}
+                    {needCompressor === "si" ? " · compressore ROTAIR MDVN53" : ""}
                   </small>
                 </div>
                 <div className="cost-lines">
@@ -1095,6 +1107,12 @@ export default function Home() {
                     <div>
                       <span>Braccio stazionario aggiuntivo</span>
                       <b>€ {quote.boom.toLocaleString("it-IT")}</b>
+                    </div>
+                  )}
+                  {quote.compressor > 0 && (
+                    <div>
+                      <span>Compressore ROTAIR MDVN53</span>
+                      <b>€ {quote.compressor.toLocaleString("it-IT")}</b>
                     </div>
                   )}
                 </div>
