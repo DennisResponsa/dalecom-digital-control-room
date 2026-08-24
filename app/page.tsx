@@ -389,6 +389,9 @@ export default function Home() {
     durationDays,
     Math.max(1, Number(weeklyPours) || 1) * rentalWeeks,
   );
+  const pumpCrew = service === "freddo" ? 0 : service === "semifreddo" ? 1 : 2;
+  const boomCrew = needBoom === "si" ? 2 : 0;
+  const crewPeople = pumpCrew + boomCrew;
   const clientValid =
     client.company.trim().length > 1 &&
     client.name.trim().length > 2 &&
@@ -397,12 +400,7 @@ export default function Home() {
     client.privacy;
   const quote = useMemo(() => {
     const rental = Number(selectedEquipment[3]) * Number(duration);
-    const crew =
-      service === "freddo"
-        ? 0
-        : service === "semifreddo"
-          ? 630 * crewDays
-          : 1116 * crewDays;
+    const crew = 400 * crewPeople * crewDays;
     const extras =
       (shift === "notturno" ? 450 : 0) + (access === "difficile" ? 380 : 0);
     return {
@@ -420,6 +418,7 @@ export default function Home() {
     service,
     duration,
     crewDays,
+    crewPeople,
     shift,
     access,
     logistics,
@@ -474,7 +473,7 @@ export default function Home() {
       `Compressore: ${needCompressor === "si" ? "Richiesto" : "Non richiesto"}`,
       `Cantiere: ${city} (${place.km} km da Paese)`,
       `Periodo: ${durationLabel} dal ${new Date(date).toLocaleDateString("it-IT")}`,
-      `Giornate personale previste: ${service === "freddo" ? 0 : crewDays}`,
+      `Personale previsto: ${crewPeople} ${crewPeople === 1 ? "persona" : "persone"} per ${crewPeople === 0 ? 0 : crewDays} ${crewDays === 1 ? "giornata" : "giornate"}`,
       `Tubazioni: € ${tubeCost.toLocaleString("it-IT")}`,
       `Totale indicativo: € ${quote.total.toLocaleString("it-IT")}`,
       ``,
@@ -1032,7 +1031,7 @@ export default function Home() {
                   {quote.crew > 0 && (
                     <div>
                       <span>
-                        Personale operativo · {crewDays} {crewDays === 1 ? "giornata" : "giornate"}
+                        Personale operativo · {crewPeople} {crewPeople === 1 ? "persona" : "persone"} × {crewDays} {crewDays === 1 ? "giornata" : "giornate"}
                       </span>
                       <b>€ {quote.crew.toLocaleString("it-IT")}</b>
                     </div>
