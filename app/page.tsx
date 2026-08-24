@@ -311,6 +311,7 @@ export default function Home() {
   const [lineDistance, setLineDistance] = useState("30");
   const [elevation, setElevation] = useState("0");
   const [needBoom, setNeedBoom] = useState("no");
+  const [needCompressor, setNeedCompressor] = useState("no");
   const [floors, setFloors] = useState("1");
   const [date, setDate] = useState("2026-08-26");
   const [duration, setDuration] = useState("3");
@@ -432,6 +433,7 @@ export default function Home() {
       `Linea: ${lineMeters} m (${ironTubes} tubi ferro + ${rubberTubes} gomma, ${curveCount} curve, ${kitCount} kit)`,
       `Quota getto: ${elevation} m · Edificio: ${floors} piani`,
       `Braccio aggiuntivo: ${needBoom === "si" ? "Sì" : "No"}`,
+      `Compressore: ${needCompressor === "si" ? "Richiesto" : "Non richiesto"}`,
       `Cantiere: ${city} (${place.km} km da Paese)`,
       `Periodo: ${duration} giorni dal ${new Date(date).toLocaleDateString("it-IT")}`,
       `Tubazioni: € ${tubeCost.toLocaleString("it-IT")}`,
@@ -731,10 +733,20 @@ export default function Home() {
                     {kitCount} kit di piano
                   </span>
                   <small>
-                    Canone tubazioni da listino: €{" "}
+                    Canone tubazioni: €{" "}
                     {tubeCost.toLocaleString("it-IT")} per il periodo
                     selezionato.
                   </small>
+                </div>
+                <div className="compressor-question wide">
+                  <div>
+                    <b>Ti serve anche il compressore?</b>
+                    <span>Lo includeremo nella verifica tecnica degli accessori.</span>
+                  </div>
+                  <div>
+                    <button type="button" className={needCompressor === "no" ? "selected" : ""} onClick={() => setNeedCompressor("no")}>No</button>
+                    <button type="button" className={needCompressor === "si" ? "selected" : ""} onClick={() => setNeedCompressor("si")}>Sì, serve</button>
+                  </div>
                 </div>
                 <div className="logic-note wide">
                   <b>✓ Coerenza tecnica verificata</b>
@@ -965,6 +977,7 @@ export default function Home() {
                   <small>
                     {ironTubes} tubi ferro + {rubberTubes} tubo gomma da 3 m · {curveCount} curve · {kitCount} kit
                     {needBoom === "si" ? " · braccio stazionario richiesto" : ""}
+                    {needCompressor === "si" ? " · compressore richiesto" : ""}
                   </small>
                 </div>
                 <div className="cost-lines">
@@ -994,7 +1007,7 @@ export default function Home() {
                   )}
                   <div>
                     <span>
-                      Tubazioni da listino · {ironTubes + rubberTubes} pezzi
+                      Tubazioni · {ironTubes + rubberTubes} pezzi
                     </span>
                     <b>€ {quote.tubes.toLocaleString("it-IT")}</b>
                   </div>
