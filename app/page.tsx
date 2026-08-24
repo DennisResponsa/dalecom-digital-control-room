@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Place = { name: string; km: number };
 type Asset = {
@@ -323,6 +323,7 @@ export default function Home() {
   const [city, setCity] = useState("Treviso");
   const [volume, setVolume] = useState("80");
   const [totalVolume, setTotalVolume] = useState("400");
+  const [weeklyPours, setWeeklyPours] = useState("3");
   const [reach, setReach] = useState("36");
   const [access, setAccess] = useState("standard");
   const [granulometry, setGranulometry] = useState("D20");
@@ -380,6 +381,8 @@ export default function Home() {
   const durationLabel =
     durationDays === 20
       ? "1 mese"
+      : durationDays >= 5 && durationDays % 5 === 0
+        ? `${durationDays / 5} ${durationDays === 5 ? "settimana" : "settimane"}`
       : durationDays === 1
         ? "1 giornata"
         : `${durationDays} giornate`;
@@ -388,10 +391,20 @@ export default function Home() {
     1,
     Math.ceil((Number(totalVolume) || volumePerPour) / volumePerPour),
   );
-  const crewDays = Math.min(durationDays, totalPours);
+  const poursPerWeek = Math.max(1, Number(weeklyPours) || 1);
+  const minimumWeeks = Math.ceil(totalPours / poursPerWeek);
+  const minimumDurationDays = minimumWeeks * 5;
+  const crewDays = totalPours;
   const pumpCrew = service === "freddo" ? 0 : service === "semifreddo" ? 1 : 2;
   const boomCrew = needBoom === "si" ? 2 : 0;
   const crewPeople = pumpCrew + boomCrew;
+  useEffect(() => {
+    if (durationDays >= minimumDurationDays) return;
+    const nextDuration = [1, 3, 5, 10, 15, 20].find(
+      (days) => days >= minimumDurationDays,
+    );
+    setDuration(String(nextDuration ?? minimumDurationDays));
+  }, [durationDays, minimumDurationDays]);
   const clientValid =
     client.company.trim().length > 1 &&
     client.name.trim().length > 2 &&
@@ -466,6 +479,7 @@ export default function Home() {
       `Volume indicativo per getto: ${volume} m³`,
       `Volume totale: ${totalVolume} m³`,
       `Numero totale getti previsti: ${totalPours}`,
+      `Ritmo previsto: ${poursPerWeek} getti a settimana (${minimumWeeks} ${minimumWeeks === 1 ? "settimana" : "settimane"} minime)`,
       `Granulometria: ${granulometry.replace("D", "Dmax ")} mm`,
       `Linea: ${lineMeters} m (${ironTubes} tubi ferro + ${rubberTubes} gomma, ${curveCount} curve, ${kitCount} kit)`,
       `Quota getto: ${elevation} m · Edificio: ${floors} piani`,
@@ -680,6 +694,17 @@ export default function Home() {
                   <small>Calcolato automaticamente dal volume totale diviso il volume per singolo getto.</small>
                 </label>
                 <label>
+                  Getti previsti a settimana
+                  <input
+                    type="number"
+                    min="1"
+                    max={totalPours}
+                    value={weeklyPours}
+                    onChange={(e) => setWeeklyPours(e.target.value)}
+                  />
+                  <small>Determina la durata minima necessaria del cantiere.</small>
+                </label>
+                <label>
                   Granulometria calcestruzzo
                   <select
                     value={granulometry}
@@ -833,11 +858,21 @@ export default function Home() {
                     value={duration}
                     onChange={(e) => setDuration(e.target.value)}
                   >
-                    <option value="1">1 giornata</option>
-                    <option value="3">3 giornate</option>
-                    <option value="5">1 settimana lavorativa</option>
-                    <option value="20">1 mese</option>
+                    <option value="1" disabled={minimumDurationDays > 1}>1 giornata</option>
+                    <option value="3" disabled={minimumDurationDays > 3}>3 giornate</option>
+                    <option value="5" disabled={minimumDurationDays > 5}>1 settimana lavorativa</option>
+                    <option value="10" disabled={minimumDurationDays > 10}>2 settimane</option>
+                    <option value="15" disabled={minimumDurationDays > 15}>3 settimane</option>
+                    <option value="20" disabled={minimumDurationDays > 20}>1 mese</option>
+                    {minimumDurationDays > 20 && (
+                      <option value={minimumDurationDays}>
+                        {minimumWeeks} settimane
+                      </option>
+                    )}
                   </select>
+                  <small>
+                    Durata minima: {minimumWeeks} {minimumWeeks === 1 ? "settimana" : "settimane"} per distribuire {totalPours} getti.
+                  </small>
                 </label>
                 <label>
                   Fascia operativa
@@ -1015,7 +1050,7 @@ export default function Home() {
                     {elevation} m · {floors} piani
                   </span>
                   <span>
-                    {volume} m³ per getto · {totalVolume} m³ totali · {totalPours} getti previsti
+                    {volume} m³ per getto · {totalVolume} m³ totali · {totalPours} getti previsti · {poursPerWeek}/settimana
                   </span>
                   <small>
                     {ironTubes} tubi ferro + {rubberTubes} tubo gomma da 3 m · {curveCount} curve · {kitCount} kit
