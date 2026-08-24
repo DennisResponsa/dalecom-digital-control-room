@@ -377,6 +377,18 @@ export default function Home() {
   const tubeCost = ironTubes * tubeRates.iron + rubberTubes * tubeRates.rubber;
   const boomCost =
     needBoom === "si" && equipment !== "braccio" ? 720 * Number(duration) : 0;
+  const durationDays = Number(duration);
+  const durationLabel =
+    durationDays === 20
+      ? "1 mese"
+      : durationDays === 1
+        ? "1 giornata"
+        : `${durationDays} giornate`;
+  const rentalWeeks = Math.max(1, Math.ceil(durationDays / 5));
+  const crewDays = Math.min(
+    durationDays,
+    Math.max(1, Number(weeklyPours) || 1) * rentalWeeks,
+  );
   const clientValid =
     client.company.trim().length > 1 &&
     client.name.trim().length > 2 &&
@@ -389,8 +401,8 @@ export default function Home() {
       service === "freddo"
         ? 0
         : service === "semifreddo"
-          ? 630 * Number(duration)
-          : 558 * Number(duration);
+          ? 630 * crewDays
+          : 1116 * crewDays;
     const extras =
       (shift === "notturno" ? 450 : 0) + (access === "difficile" ? 380 : 0);
     return {
@@ -407,6 +419,7 @@ export default function Home() {
     selectedEquipment,
     service,
     duration,
+    crewDays,
     shift,
     access,
     logistics,
@@ -460,7 +473,8 @@ export default function Home() {
       `Braccio aggiuntivo: ${needBoom === "si" ? "Sì" : "No"}`,
       `Compressore: ${needCompressor === "si" ? "Richiesto" : "Non richiesto"}`,
       `Cantiere: ${city} (${place.km} km da Paese)`,
-      `Periodo: ${duration} giorni dal ${new Date(date).toLocaleDateString("it-IT")}`,
+      `Periodo: ${durationLabel} dal ${new Date(date).toLocaleDateString("it-IT")}`,
+      `Giornate personale previste: ${service === "freddo" ? 0 : crewDays}`,
       `Tubazioni: € ${tubeCost.toLocaleString("it-IT")}`,
       `Totale indicativo: € ${quote.total.toLocaleString("it-IT")}`,
       ``,
@@ -990,7 +1004,7 @@ export default function Home() {
                   <div>
                     <small>Località e periodo</small>
                     <b>
-                      {city} · {duration} gg
+                      {city} · {durationLabel}
                     </b>
                   </div>
                 </div>
@@ -1017,7 +1031,9 @@ export default function Home() {
                   </div>
                   {quote.crew > 0 && (
                     <div>
-                      <span>Personale operativo</span>
+                      <span>
+                        Personale operativo · {crewDays} {crewDays === 1 ? "giornata" : "giornate"}
+                      </span>
                       <b>€ {quote.crew.toLocaleString("it-IT")}</b>
                     </div>
                   )}
