@@ -9,6 +9,7 @@ import {
   boomAllowed,
   ironTubeRates,
   logisticsFor,
+  lineCleaningFor,
   personnelFor,
   quoteTotal,
   recommendedDurationDays,
@@ -97,6 +98,12 @@ test("la matrice di selezione rispetta formula, macchina, braccio e tubi", () =>
   assert.equal(tubesIncluded("caldo", "autopompa", true), true);
   assert.equal(tubesIncluded("semifreddo", "city", false), true);
   assert.equal(tubesIncluded("caldo", "city", false), true);
+});
+
+test("il lavaggio è una regola automatica e non una scelta", () => {
+  assert.equal(lineCleaningFor("freddo"), "cliente");
+  assert.equal(lineCleaningFor("semifreddo"), "dalecom");
+  assert.equal(lineCleaningFor("caldo"), "dalecom");
 });
 
 test("volume, frequenza e durata restano matematicamente coerenti", () => {

@@ -102,6 +102,10 @@ export function tubesIncluded(service: Service, equipment: Equipment, withBoom: 
   return true;
 }
 
+export function lineCleaningFor(service: Service) {
+  return service === "freddo" ? "cliente" : "dalecom";
+}
+
 export function personnelFor(service: Service, equipment: Equipment, withBoom: boolean) {
   let people = 0;
   let dailyCost = 0;

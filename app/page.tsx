@@ -8,6 +8,7 @@ import {
   durationLabel as formatDurationLabel,
   equipmentAllowed,
   logisticsFor,
+  lineCleaningFor,
   personnelFor,
   quoteTotal,
   recommendedDurationDays,
@@ -345,7 +346,6 @@ export default function Home() {
   const [needCompressor, setNeedCompressor] = useState("no");
   const [leaveLineInstalled, setLeaveLineInstalled] = useState("si");
   const [lineAreaSafe, setLineAreaSafe] = useState("si");
-  const [lineCleaning, setLineCleaning] = useState("dalecom");
   const [floors, setFloors] = useState("1");
   const [date, setDate] = useState(todayISO);
   const [flexibility, setFlexibility] = useState("tassativa");
@@ -401,6 +401,7 @@ export default function Home() {
   const hasStandardConcreteLine = equipment !== "malte";
   const lineIsIncluded = tubesIncluded(service, equipment, needBoom === "si");
   const lineSetupIsIncluded = lineIsIncluded && service !== "freddo";
+  const lineCleaning = lineCleaningFor(service);
   const boomAssetName = Number(reach) <= 28
     ? "Putzmeister MX28 · 28 m"
     : "Putzmeister MX36-4 · 36 m";
@@ -601,8 +602,10 @@ export default function Home() {
         ? [
             `Tubazioni lasciate predisposte: ${leaveLineInstalled === "si" ? "Sì" : "No"}`,
             `Area di posa sicura tra i getti: ${lineAreaSafe === "si" ? "Sì" : "No / da verificare"}`,
-            `Pulizia linea tra i getti: ${lineCleaning === "dalecom" ? "Dalecom" : "Cliente"}`,
           ]
+        : []),
+      ...(lineIsIncluded
+        ? [`Lavaggio tubazioni: ${lineCleaning === "dalecom" ? "sempre a carico Dalecom" : "sempre a carico del cliente"}`]
         : []),
       `Quota getto: ${elevation} m · Edificio: ${floors} piani`,
       `Braccio aggiuntivo: ${needBoom === "si" ? `Sì · ${boomAssetName}` : "No"}`,
@@ -1014,13 +1017,16 @@ export default function Home() {
                         <option value="no">No / da verificare</option>
                       </select>
                     </label>
-                    <label>
-                      Chi gestisce la pulizia tra i getti?
-                      <select value={lineCleaning} onChange={(e) => setLineCleaning(e.target.value)}>
-                        <option value="dalecom">Dalecom</option>
-                        <option value="cliente">Il cliente</option>
-                      </select>
-                    </label>
+                  </div>
+                )}
+                {lineIsIncluded && (
+                  <div className="washing-rule wide">
+                    <b>Lavaggio tubazioni</b>
+                    <span>
+                      {lineCleaning === "cliente"
+                        ? "Noleggio a freddo: sempre e solo a carico del cliente."
+                        : "Noleggio semifreddo o a caldo: sempre a carico Dalecom."}
+                    </span>
                   </div>
                 )}
                 <div className="compressor-question wide">
@@ -1304,7 +1310,12 @@ export default function Home() {
                   )}
                   {durationDays > 1 && lineIsIncluded && (
                     <small className="line-plan-summary">
-                      Linea tra i getti: {leaveLineInstalled === "si" ? "lasciata predisposta" : "rimossa dopo ogni getto"} · area {lineAreaSafe === "si" ? "protetta" : "da verificare"} · pulizia {lineCleaning === "dalecom" ? "Dalecom" : "cliente"}
+                      Linea tra i getti: {leaveLineInstalled === "si" ? "lasciata predisposta" : "rimossa dopo ogni getto"} · area {lineAreaSafe === "si" ? "protetta" : "da verificare"}
+                    </small>
+                  )}
+                  {lineIsIncluded && (
+                    <small className="line-plan-summary">
+                      Lavaggio tubazioni: {lineCleaning === "dalecom" ? "a carico Dalecom" : "a carico del cliente"}.
                     </small>
                   )}
                   {equipment === "city" && (
