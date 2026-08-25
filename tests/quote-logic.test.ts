@@ -88,7 +88,10 @@ test("la matrice di selezione rispetta formula, macchina, braccio e tubi", () =>
   assert.equal(boomAllowed("caldo", "autopompa"), true);
   assert.equal(boomAllowed("caldo", "city"), true);
   assert.equal(boomAllowed("caldo", "carrellata"), true);
-  assert.equal(tubesIncluded("freddo", "carrellata", false), false);
+  assert.equal(tubesIncluded("freddo", "carrellata", false), true);
+  assert.equal(tubesIncluded("freddo", "malte", false), true);
+  assert.equal(tubesIncluded("freddo", "autopompa", false), false);
+  assert.equal(tubesIncluded("freddo", "city", false), false);
   assert.equal(tubesIncluded("semifreddo", "autopompa", false), false);
   assert.equal(tubesIncluded("caldo", "autopompa", false), false);
   assert.equal(tubesIncluded("caldo", "autopompa", true), true);
@@ -126,8 +129,19 @@ test("regressione screenshot: 200 m³ non diventano 45 settimane o € 42.750", 
   assert.equal(days, 10);
   assert.equal(rental, 640);
   assert.deepEqual(crew, { people: 0, dailyCost: 0 });
-  assert.equal(tubesIncluded("freddo", "malte", false), false);
+  assert.equal(tubesIncluded("freddo", "malte", false), true);
   assert.equal(quoteTotal({ rental, crew: 0, tubes: 0, boom: 0, compressor: 0, setup: 0, teardown: 0 }), 640);
+});
+
+test("a freddo le pompe carrellate includono il canone dei tubi ma non il personale", () => {
+  const days = recommendedDurationDays(7, 5);
+  const line = tubingFor(30, 0, 1, false, days);
+  const rental = rentalForRates(assetRates["Putzmeister P715 TD"], days);
+  const crew = personnelFor("freddo", "carrellata", false);
+  assert.equal(days, 10);
+  assert.equal(line.cost, 350);
+  assert.deepEqual(crew, { people: 0, dailyCost: 0 });
+  assert.equal(quoteTotal({ rental, crew: 0, tubes: line.cost, boom: 0, compressor: 0, setup: 0, teardown: 0 }), rental + 350);
 });
 
 test("gli addendi a zero non introducono cifre o zeri aggiuntivi", () => {

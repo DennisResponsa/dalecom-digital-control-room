@@ -400,7 +400,7 @@ export default function Home() {
   } = tubing;
   const hasStandardConcreteLine = equipment !== "malte";
   const lineIsIncluded = tubesIncluded(service, equipment, needBoom === "si");
-  const lineSetupIsIncluded = lineIsIncluded;
+  const lineSetupIsIncluded = lineIsIncluded && service !== "freddo";
   const boomAssetName = Number(reach) <= 28
     ? "Putzmeister MX28 · 28 m"
     : "Putzmeister MX36-4 · 36 m";
@@ -423,7 +423,7 @@ export default function Home() {
   const crewDailyCost = crew.dailyCost;
   const serviceSummary =
     service === "freddo"
-      ? "Solo macchina · personale e tubazioni esclusi"
+      ? "Solo macchina con tubazioni · personale escluso"
       : needBoom === "si"
         ? "Pompa + braccio · squadra minima di 3 persone"
         : service === "semifreddo"
@@ -712,7 +712,7 @@ export default function Home() {
                       {x[0] === "freddo"
                         ? equipment === "autopompa" || equipment === "city"
                           ? "Non disponibile per questa macchina"
-                          : "Solo mezzo · senza personale e tubi"
+                          : "Solo mezzo + tubazioni · senza personale"
                         : x[0] === "semifreddo"
                           ? equipment === "autopompa"
                             ? "Solo autista · senza tubi"

@@ -95,7 +95,9 @@ export function boomAllowed(service: Service, equipment: Equipment) {
 }
 
 export function tubesIncluded(service: Service, equipment: Equipment, withBoom: boolean) {
-  if (service === "freddo") return false;
+  if (service === "freddo") {
+    return equipment === "carrellata" || equipment === "malte";
+  }
   if (equipment === "autopompa" && !withBoom) return false;
   return true;
 }
