@@ -355,6 +355,9 @@ export default function Home() {
   const [assetIndex, setAssetIndex] = useState(0);
   const [detailsIndex, setDetailsIndex] = useState<number | null>(null);
   const [confirmed, setConfirmed] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [integrationError, setIntegrationError] = useState("");
+  const [oneCLead, setOneCLead] = useState<{ code: string | null; duplicate: boolean } | null>(null);
   const [client, setClient] = useState({
     company: "",
     vat: "",
@@ -559,11 +562,14 @@ export default function Home() {
   };
   const updateClient = (field: string, value: string | boolean) => {
     setConfirmed(false);
+    setIntegrationError("");
+    setOneCLead(null);
     setClient((c) => ({ ...c, [field]: value }));
   };
-  const submitLead = () => {
-    if (!clientValid) return;
-    setConfirmed(true);
+  const submitLead = async () => {
+    if (!clientValid || submitting) return;
+    setSubmitting(true);
+    setIntegrationError("");
     const subject = `${requiresSurvey ? "CONCORDARE SOPRALLUOGO · " : ""}Richiesta preventivo Dalecom · ${client.company} · ${quoteReference}`;
     const body = [
       ...(requiresSurvey
@@ -633,8 +639,153 @@ export default function Home() {
       ``,
       `Riferimento: ${quoteReference}`,
     ].join("\n");
-    const gmailCompose = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent("dennis.cumerlato@gmail.com")}&cc=${encodeURIComponent("riolfatti.thomas76@gmail.com")}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.open(gmailCompose, "_blank", "noopener,noreferrer");
+    const emailWindow = window.open("about:blank", "_blank");
+    const serviceCode = service === "freddo" ? "cold" : service === "semifreddo" ? "semi_cold" : "hot";
+    const equipmentFamily =
+      equipment === "autopompa"
+        ? "truck_mounted_pump"
+        : equipment === "city"
+          ? "city_pump"
+          : equipment === "carrellata"
+            ? "trailer_or_crawler_pump"
+            : "mortar_or_plaster_pump";
+    const payload = {
+      event_id: crypto.randomUUID(),
+      event_type: "dalecom.quote.created",
+      occurred_at: new Date().toISOString(),
+      source: {
+        application: "dalecom-preventivo-immediato",
+        public_url: "https://dalecom-preventivo-immediato.denniscumerlato.chatgpt.site/",
+      },
+      customer: {
+        company_name: client.company.trim(),
+        vat_or_tax_code: client.vat.trim(),
+        contact_name: client.name.trim(),
+        email: client.email.trim(),
+        phone: client.phone.trim(),
+        privacy_consent: client.privacy,
+      },
+      quote: {
+        quote_reference: quoteReference,
+        service: {
+          code: serviceCode,
+          label: service === "freddo" ? "A freddo" : service === "semifreddo" ? "Semifreddo" : "A caldo",
+          washing_responsibility: lineCleaning,
+        },
+        job: {
+          intervention,
+          aggregate_max_mm: aggregateSize,
+          volume_per_pour_m3: Number(volume),
+          total_volume_m3: Number(totalVolume),
+          total_pours: totalPours,
+          pours_per_week: poursPerWeek,
+          building_floors: Number(floors),
+          access_type: access,
+          operating_shift: shift,
+        },
+        site: {
+          country: "IT",
+          region,
+          province,
+          municipality: city,
+          distance_from_paese_km: place.km,
+          transport_price_band: logistics.band,
+        },
+        schedule: {
+          start_date: date,
+          date_flexibility_days: flexibility === "tassativa" ? 0 : Number(flexibility),
+          duration_working_days: durationDays,
+          duration_label: durationLabel,
+          minimum_duration_working_days: minimumDurationDays,
+        },
+        main_equipment: {
+          family_code: equipmentFamily,
+          asset_name: selectedAsset.name,
+          asset_site: selectedAsset.site,
+          available_quantity: selectedAsset.qty,
+          availability_status: selectedAsset.status,
+          aggregate_max_supported_mm: selectedAsset.maxAggregate,
+          rental_cost: quote.rental,
+        },
+        stationary_boom: {
+          required: needBoom === "si",
+          asset_name: needBoom === "si" ? boomAssetName : null,
+          reach_m: needBoom === "si" ? Number(reach) : null,
+          rental_cost: quote.boom,
+        },
+        compressor: {
+          required: needCompressor === "si",
+          asset_name: needCompressor === "si" ? "ATLAS XAVS186" : null,
+          rental_cost: quote.compressor,
+        },
+        pipeline: {
+          included: lineIsIncluded,
+          specific_pipeline_price_missing: lineIsIncluded && !hasStandardConcreteLine,
+          horizontal_distance_m: Number(lineDistance),
+          elevation_from_zero_m: Number(elevation),
+          total_development_m: lineMeters,
+          iron_tubes_quantity: lineIsIncluded && hasStandardConcreteLine ? ironTubes : 0,
+          rubber_tubes_quantity: lineIsIncluded && hasStandardConcreteLine ? rubberTubes : 0,
+          total_tubes_quantity: lineIsIncluded && hasStandardConcreteLine ? ironTubes + rubberTubes : 0,
+          curves_quantity: lineIsIncluded ? curveCount : 0,
+          floor_kits_quantity: lineIsIncluded ? kitCount : 0,
+          left_installed_between_pours: durationDays > 1 ? leaveLineInstalled === "si" : null,
+          protected_area: durationDays > 1 ? lineAreaSafe === "si" : null,
+          washing_responsibility: lineCleaning,
+          rental_cost: quote.tubes,
+        },
+        personnel: {
+          people_quantity: crewPeople,
+          working_days: crewPeople > 0 ? crewDays : 0,
+          daily_cost: crewDailyCost,
+          total_cost: quote.crew,
+          composition: serviceSummary,
+        },
+        costs: {
+          equipment_rental: quote.rental,
+          personnel: quote.crew,
+          pipeline: quote.tubes,
+          stationary_boom: quote.boom,
+          compressor: quote.compressor,
+          setup: lineSetupIsIncluded ? logistics.setup : 0,
+          teardown: lineSetupIsIncluded ? logistics.teardown : 0,
+          total_indicative: quote.total,
+        },
+        review: {
+          survey_required: requiresSurvey,
+          price_review_required: requiresPriceReview,
+          technical_confirmation_required: true,
+        },
+      },
+      website: "",
+    };
+
+    try {
+      const response = await fetch("/api/one-c/lead", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const result = (await response.json()) as {
+        success?: boolean;
+        error?: string;
+        lead_code?: string | null;
+        duplicate?: boolean;
+      };
+      if (!response.ok || !result.success) throw new Error(result.error || "Invio non riuscito");
+
+      setOneCLead({ code: result.lead_code || null, duplicate: Boolean(result.duplicate) });
+      setConfirmed(true);
+      const crmLine = `\nLead 1C: ${result.lead_code || "creato"}${result.duplicate ? " · già presente" : ""}`;
+      const gmailCompose = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent("dennis.cumerlato@gmail.com")}&cc=${encodeURIComponent("riolfatti.thomas76@gmail.com")}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body + crmLine)}`;
+      if (emailWindow) emailWindow.location.href = gmailCompose;
+      else window.open(gmailCompose, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      if (emailWindow) emailWindow.close();
+      setIntegrationError(error instanceof Error ? error.message : "Invio al gestionale non riuscito");
+    } finally {
+      setSubmitting(false);
+    }
   };
   return (
     <main>
@@ -1481,6 +1632,12 @@ export default function Home() {
                       </span>
                     </label>
                   </div>
+                  {integrationError && (
+                    <div className="integration-error" role="alert">
+                      <b>Invio a 1C non completato</b>
+                      <span>{integrationError} Nessun lead duplicato è stato creato: puoi riprovare.</span>
+                    </div>
+                  )}
                   <div className="quote-actions">
                     <button
                       type="button"
@@ -1492,19 +1649,21 @@ export default function Home() {
                     <button
                       type="submit"
                       className="primary"
+                      disabled={submitting}
                     >
-                      Prepara email e genera PDF
+                      {submitting ? "Invio al gestionale 1C…" : "Invia a 1C, prepara email e PDF"}
                     </button>
                   </div>
                 </form>
               ) : (
                 <>
                   <div className="confirmation-box">
-                    <b>✓ Dati cliente acquisiti</b>
+                    <b>✓ Lead registrato nel gestionale 1C{oneCLead?.code ? ` · ${oneCLead.code}` : ""}</b>
                     <span>
-                      Gmail è stato aperto con la richiesta già compilata: il
-                      cliente deve solo confermare l’invio. Il preventivo
-                      personalizzato è ora disponibile.
+                      {oneCLead?.duplicate
+                        ? "La richiesta era già presente: 1C non ha creato un duplicato. "
+                        : "Cliente e preventivo sono stati acquisiti direttamente da 1C. "}
+                      Gmail è stato aperto con la copia già compilata e il preventivo personalizzato è disponibile.
                     </span>
                   </div>
                   <div className="quote-actions">

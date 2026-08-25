@@ -248,6 +248,22 @@ body {
   font-weight: 500;
 }
 
+.integration-error {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 16px;
+  padding: 13px 15px;
+  border: 1px solid #d85c4a;
+  border-radius: 9px;
+  background: #fff0ee;
+  color: #8c271b;
+}
+
+.integration-error span {
+  font-size: 12px;
+}
+
 .primary:disabled {
   cursor: not-allowed;
   filter: grayscale(.7);

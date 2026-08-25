@@ -2,13 +2,18 @@
   "contract_name": "Dalecom Preventivo Immediato -> 1C",
   "contract_version": "2.0.0",
   "encoding": "UTF-8",
-  "endpoint_proposal": {
+  "configurator_endpoint": {
     "method": "POST",
-    "path": "/api/v1/dalecom/quote-leads",
+    "path": "/api/one-c/lead",
     "content_type": "application/json",
-    "authentication": "Bearer token or API key to be agreed with 1C",
+    "authentication": "Same-origin form endpoint; 1C credentials are held server-side",
     "timeout_seconds": 15,
-    "idempotency_header": "Idempotency-Key"
+    "idempotency_strategy": "Exact customer company plus quote reference"
+  },
+  "one_c_target": {
+    "method": "POST",
+    "path": "/odata/standard.odata/Catalog_Leads",
+    "authentication": "HTTP Basic stored as a protected server-side secret"
   },
   "request_example": {
     "event_id": "evt_DL-20260826_001",
