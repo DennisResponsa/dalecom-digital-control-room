@@ -103,6 +103,24 @@ body {
   height: 100%;
 }
 
+.equipment-grid button.unavailable,
+.equipment-grid button:disabled {
+  cursor: not-allowed;
+  border-color: #d7dfe3;
+  background: #eef2f3;
+  box-shadow: none;
+  color: #7b8b93;
+  filter: grayscale(1);
+  opacity: .62;
+  transform: none;
+}
+
+.equipment-grid button.unavailable small {
+  margin-top: 8px;
+  color: #a44518;
+  font-weight: 800;
+}
+
 .equipment-grid .selected .radio {
   border-color: var(--orange);
 }

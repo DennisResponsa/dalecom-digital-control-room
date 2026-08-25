@@ -1,5 +1,6 @@
 export type RentalRates = { day: number; week: number; months: number[] };
 export type Service = "freddo" | "semifreddo" | "caldo";
+export type Equipment = "autopompa" | "city" | "carrellata" | "malte";
 
 export const assetRates: Record<string, RentalRates> = {
   "Putzmeister M20 · GJ584JY": { day: 820, week: 2960, months: [9020, 8520, 8830, 7990, 6910, 6170, 5690, 5360, 5290, 5210, 5090, 4990] },
@@ -85,16 +86,54 @@ export function durationLabel(days: number) {
   return `${days} giornate`;
 }
 
-export function personnelFor(service: Service, equipment: string, withBoom: boolean) {
-  const pumpPeople = service === "freddo" ? 0 : service === "semifreddo" ? 1 : 2;
-  const pumpDailyCost = service === "freddo" ? 0 : service === "semifreddo" ? 630 : 1116;
-  const cityDriverPeople = equipment === "city" ? 1 : 0;
-  const cityDriverDailyCost = cityDriverPeople ? 486 : 0;
-  const boomPeople = withBoom ? 2 : 0;
-  const boomDailyCost = boomPeople ? 972 : 0;
+export function equipmentAllowed(service: Service, equipment: Equipment) {
+  return service !== "freddo" || (equipment !== "autopompa" && equipment !== "city");
+}
+
+export function boomAllowed(service: Service, equipment: Equipment) {
+  return service === "caldo" && equipment !== "malte";
+}
+
+export function tubesIncluded(service: Service, equipment: Equipment, withBoom: boolean) {
+  if (service === "freddo") return false;
+  if (equipment === "autopompa" && !withBoom) return false;
+  return true;
+}
+
+export function personnelFor(service: Service, equipment: Equipment, withBoom: boolean) {
+  let people = 0;
+  let dailyCost = 0;
+
+  if (service === "semifreddo") {
+    if (equipment === "autopompa") {
+      people = 1;
+      dailyCost = 486;
+    } else if (equipment === "city") {
+      people = 2;
+      dailyCost = 1116;
+    } else {
+      people = 1;
+      dailyCost = 630;
+    }
+  } else if (service === "caldo") {
+    if (equipment === "autopompa") {
+      people = 1;
+      dailyCost = 630;
+    } else {
+      people = 2;
+      dailyCost = 1116;
+    }
+  }
+
+  if (withBoom && boomAllowed(service, equipment) && people < 3) {
+    const additionalPeople = 3 - people;
+    people += additionalPeople;
+    dailyCost += additionalPeople * 486;
+  }
+
   return {
-    people: pumpPeople + cityDriverPeople + boomPeople,
-    dailyCost: pumpDailyCost + cityDriverDailyCost + boomDailyCost,
+    people,
+    dailyCost,
   };
 }
 
@@ -142,4 +181,16 @@ export function logisticsFor(km: number, withBoom: boolean) {
     teardown: withBoom ? pumpBoom[index] : pumpLineTeardown[index],
     configuration: withBoom ? "Pompa + braccio" : "Pompa + linea",
   };
+}
+
+export function quoteTotal(parts: {
+  rental: number;
+  crew: number;
+  tubes: number;
+  boom: number;
+  compressor: number;
+  setup: number;
+  teardown: number;
+}) {
+  return Object.values(parts).reduce((total, value) => total + value, 0);
 }

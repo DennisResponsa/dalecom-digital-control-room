@@ -5,13 +5,17 @@ import {
   boomRates,
   compressorRates,
   durationLabel,
+  equipmentAllowed,
+  boomAllowed,
   ironTubeRates,
   logisticsFor,
   personnelFor,
+  quoteTotal,
   recommendedDurationDays,
   rentalForRates,
   rubberTubeRates,
   tubingFor,
+  tubesIncluded,
 } from "../app/quote-logic.ts";
 
 const durations = [1, 3, 5, 10, 15, 20, 25, 30, 40, 60, 80, 120, 180, 240];
@@ -48,7 +52,7 @@ test("tutti i canoni sono finiti, non negativi e non diminuiscono aumentando i g
 
 test("il personale copre ogni formula, famiglia e presenza del braccio", () => {
   const services = ["freddo", "semifreddo", "caldo"] as const;
-  const equipment = ["autopompa", "city", "carrellata", "malte"];
+  const equipment = ["autopompa", "city", "carrellata", "malte"] as const;
   let cases = 0;
   for (const service of services) {
     for (const machine of equipment) {
@@ -60,9 +64,36 @@ test("il personale copre ogni formula, famiglia e presenza del braccio", () => {
     }
   }
   assert.equal(cases, 24);
-  assert.deepEqual(personnelFor("caldo", "city", false), { people: 3, dailyCost: 1602 });
-  assert.deepEqual(personnelFor("caldo", "city", true), { people: 5, dailyCost: 2574 });
+  assert.deepEqual(personnelFor("semifreddo", "autopompa", false), { people: 1, dailyCost: 486 });
+  assert.deepEqual(personnelFor("semifreddo", "city", false), { people: 2, dailyCost: 1116 });
+  assert.deepEqual(personnelFor("caldo", "autopompa", false), { people: 1, dailyCost: 630 });
+  assert.deepEqual(personnelFor("caldo", "city", false), { people: 2, dailyCost: 1116 });
+  assert.deepEqual(personnelFor("caldo", "city", true), { people: 3, dailyCost: 1602 });
+  assert.deepEqual(personnelFor("caldo", "autopompa", true), { people: 3, dailyCost: 1602 });
   assert.deepEqual(personnelFor("freddo", "autopompa", false), { people: 0, dailyCost: 0 });
+});
+
+test("la matrice di selezione rispetta formula, macchina, braccio e tubi", () => {
+  assert.equal(equipmentAllowed("freddo", "autopompa"), false);
+  assert.equal(equipmentAllowed("freddo", "city"), false);
+  assert.equal(equipmentAllowed("freddo", "carrellata"), true);
+  assert.equal(equipmentAllowed("freddo", "malte"), true);
+  for (const equipment of ["autopompa", "city", "carrellata", "malte"] as const) {
+    assert.equal(equipmentAllowed("semifreddo", equipment), true);
+    assert.equal(equipmentAllowed("caldo", equipment), true);
+    assert.equal(boomAllowed("freddo", equipment), false);
+    assert.equal(boomAllowed("semifreddo", equipment), false);
+  }
+  assert.equal(boomAllowed("caldo", "malte"), false);
+  assert.equal(boomAllowed("caldo", "autopompa"), true);
+  assert.equal(boomAllowed("caldo", "city"), true);
+  assert.equal(boomAllowed("caldo", "carrellata"), true);
+  assert.equal(tubesIncluded("freddo", "carrellata", false), false);
+  assert.equal(tubesIncluded("semifreddo", "autopompa", false), false);
+  assert.equal(tubesIncluded("caldo", "autopompa", false), false);
+  assert.equal(tubesIncluded("caldo", "autopompa", true), true);
+  assert.equal(tubesIncluded("semifreddo", "city", false), true);
+  assert.equal(tubesIncluded("caldo", "city", false), true);
 });
 
 test("volume, frequenza e durata restano matematicamente coerenti", () => {
@@ -83,6 +114,27 @@ test("volume, frequenza e durata restano matematicamente coerenti", () => {
   assert.equal(recommendedDurationDays(1, 1), 1);
   assert.equal(recommendedDurationDays(5, 2), 15);
   assert.equal(recommendedDurationDays(21, 4), 30);
+  assert.equal(recommendedDurationDays(7, 5), 10);
+});
+
+test("regressione screenshot: 200 m³ non diventano 45 settimane o € 42.750", () => {
+  const pours = Math.ceil(200 / 30);
+  const days = recommendedDurationDays(pours, 5);
+  const rental = rentalForRates(assetRates["Putzmeister SP 11 LMR"], days);
+  const crew = personnelFor("freddo", "malte", false);
+  assert.equal(pours, 7);
+  assert.equal(days, 10);
+  assert.equal(rental, 640);
+  assert.deepEqual(crew, { people: 0, dailyCost: 0 });
+  assert.equal(tubesIncluded("freddo", "malte", false), false);
+  assert.equal(quoteTotal({ rental, crew: 0, tubes: 0, boom: 0, compressor: 0, setup: 0, teardown: 0 }), 640);
+});
+
+test("gli addendi a zero non introducono cifre o zeri aggiuntivi", () => {
+  assert.equal(quoteTotal({ rental: 640, crew: 0, tubes: 0, boom: 0, compressor: 0, setup: 0, teardown: 0 }), 640);
+  assert.equal(quoteTotal({ rental: 640, crew: 1260, tubes: 350, boom: 0, compressor: 0, setup: 1300, teardown: 1716 }), 5266);
+  assert.equal(rentalForRates(assetRates["Putzmeister SP 11 LMR"], 225), 7360);
+  assert.notEqual(rentalForRates(assetRates["Putzmeister SP 11 LMR"], 225), 42750);
 });
 
 test("la distinta tubazioni copre distanza e quota in tutti i casi limite", () => {
@@ -127,7 +179,7 @@ test("la matrice economica completa non genera NaN o totali negativi", () => {
   for (const rate of Object.values(assetRates)) {
     for (const duration of durations) {
       for (const service of ["freddo", "semifreddo", "caldo"] as const) {
-        for (const equipment of ["autopompa", "city", "carrellata", "malte"]) {
+        for (const equipment of ["autopompa", "city", "carrellata", "malte"] as const) {
           for (const boom of [false, true]) {
             for (const compressor of [false, true]) {
               for (const km of [0, 51, 151, 301, 501, 651]) {

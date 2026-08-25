@@ -3,16 +3,20 @@ import Image from "next/image";
 import { useState } from "react";
 import {
   boomRates,
+  boomAllowed,
   compressorRates,
   durationLabel as formatDurationLabel,
+  equipmentAllowed,
   logisticsFor,
   personnelFor,
+  quoteTotal,
   recommendedDurationDays,
   rentalForDuration,
   rentalForRates,
   tubingFor,
+  tubesIncluded,
 } from "./quote-logic";
-import type { Service } from "./quote-logic";
+import type { Equipment, Service } from "./quote-logic";
 
 type Place = { name: string; km: number };
 type Asset = {
@@ -325,7 +329,7 @@ export default function Home() {
   const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const [step, setStep] = useState(0);
   const [service, setService] = useState<Service>("caldo");
-  const [equipment, setEquipment] = useState("autopompa");
+  const [equipment, setEquipment] = useState<Equipment>("autopompa");
   const [region, setRegion] = useState("Veneto");
   const [province, setProvince] = useState("Treviso");
   const [city, setCity] = useState("Treviso");
@@ -395,6 +399,8 @@ export default function Home() {
     cost: tubeCost,
   } = tubing;
   const hasStandardConcreteLine = equipment !== "malte";
+  const lineIsIncluded = tubesIncluded(service, equipment, needBoom === "si");
+  const lineSetupIsIncluded = lineIsIncluded;
   const boomAssetName = Number(reach) <= 28
     ? "Putzmeister MX28 · 28 m"
     : "Putzmeister MX36-4 · 36 m";
@@ -416,17 +422,19 @@ export default function Home() {
   const crewPeople = crew.people;
   const crewDailyCost = crew.dailyCost;
   const serviceSummary =
-    service === "caldo"
-      ? equipment === "city"
-        ? "Squadra completa con autista City Pump"
-        : "Squadra completa"
-      : service === "semifreddo"
-        ? equipment === "city"
-          ? "Preposto Dalecom e autista City Pump"
-          : "Mezzo e preposto Dalecom"
-        : equipment === "city"
-          ? "Mezzo con autista City Pump"
-          : "Noleggio senza personale";
+    service === "freddo"
+      ? "Solo macchina · personale e tubazioni esclusi"
+      : needBoom === "si"
+        ? "Pompa + braccio · squadra minima di 3 persone"
+        : service === "semifreddo"
+          ? equipment === "autopompa"
+            ? "Autopompa con solo autista · tubazioni escluse"
+            : equipment === "city"
+              ? "City Pump con autista e pompista distinti"
+              : "Mezzo con preposto Dalecom"
+          : equipment === "autopompa"
+            ? "Autopompa con 1 operatore · tubazioni escluse"
+            : "Squadra base di 2 persone · eventuale terzo da confermare";
   const compressorCost =
     needCompressor === "si" ? rentalForRates(compressorRates, durationDays) : 0;
   const syncRecommendedDuration = (pours: number, weekly: number) => {
@@ -449,12 +457,14 @@ export default function Home() {
   const crewCost = crewDailyCost * crewDays;
   const boomBeyondFleet = needBoom === "si" && Number(reach) > 36;
   const repeatedLineHandling =
-    durationDays > 1 &&
+    lineIsIncluded && durationDays > 1 &&
     (leaveLineInstalled === "no" || lineAreaSafe === "no");
   const requiresSurvey =
     access === "difficile" || boomBeyondFleet || repeatedLineHandling || place.km > 500;
   const requiresPriceReview =
-    requiresSurvey || shift === "notturno" || !hasStandardConcreteLine;
+    requiresSurvey ||
+    shift === "notturno" ||
+    (lineIsIncluded && !hasStandardConcreteLine);
   const quoteReference = `DL-${date.replaceAll("-", "")}`;
   const transmatHose =
     selectedAsset?.name === "Turbosol Transmat 250"
@@ -484,12 +494,19 @@ export default function Home() {
   const quote = {
     rental: rentalCost,
     crew: crewCost,
-    tubes: hasStandardConcreteLine ? tubeCost : 0,
+    tubes: lineIsIncluded && hasStandardConcreteLine ? tubeCost : 0,
     boom: boomCost,
     compressor: compressorCost,
-    transport: logistics.setup + logistics.teardown,
-    total:
-      rentalCost + crewCost + (hasStandardConcreteLine ? tubeCost : 0) + boomCost + compressorCost + logistics.setup + logistics.teardown,
+    transport: lineSetupIsIncluded ? logistics.setup + logistics.teardown : 0,
+    total: quoteTotal({
+      rental: rentalCost,
+      crew: crewCost,
+      tubes: lineIsIncluded && hasStandardConcreteLine ? tubeCost : 0,
+      boom: boomCost,
+      compressor: compressorCost,
+      setup: lineSetupIsIncluded ? logistics.setup : 0,
+      teardown: lineSetupIsIncluded ? logistics.teardown : 0,
+    }),
   };
   const chooseRegion = (v: string) => {
     setRegion(v);
@@ -501,7 +518,7 @@ export default function Home() {
     setProvince(v);
     setCity(areas[region][v][0].name);
   };
-  const chooseEquipment = (v: string) => {
+  const chooseEquipment = (v: Equipment) => {
     setEquipment(v);
     if (v === "malte") setNeedBoom("no");
     const nextIntervention = interventions[v][0];
@@ -519,6 +536,11 @@ export default function Home() {
     setIntervention(nextIntervention);
     setAssetIndex(0);
     setDetailsIndex(null);
+  };
+  const chooseService = (value: Service) => {
+    setService(value);
+    if (!equipmentAllowed(value, equipment)) chooseEquipment("carrellata");
+    if (!boomAllowed(value, equipment)) setNeedBoom("no");
   };
   const chooseIntervention = (value: string) => {
     setIntervention(value);
@@ -570,10 +592,12 @@ export default function Home() {
       `Ritmo previsto: ${poursPerWeek} getti a settimana (${minimumWeeks} ${minimumWeeks === 1 ? "settimana" : "settimane"} minime)`,
       `Granulometria: ${granulometry.replace("D", "Dmax ")} mm`,
       ...(transmatHose ? [`Tubazione Transmat richiesta: ${transmatHose}`] : []),
-      hasStandardConcreteLine
-        ? `Linea: ${lineMeters} m (${ironTubes} tubi ferro + ${rubberTubes} gomma, ${curveCount} curve, ${kitCount} kit)`
-        : `Linea malte/massetti: ${lineMeters} m · tubazione specifica da definire e quotare`,
-      ...(durationDays > 1
+      !lineIsIncluded
+        ? `Tubazioni: escluse dalla formula selezionata`
+        : hasStandardConcreteLine
+          ? `Linea: ${lineMeters} m (${ironTubes} tubi ferro + ${rubberTubes} gomma, ${curveCount} curve, ${kitCount} kit)`
+          : `Linea malte/massetti: ${lineMeters} m · tubazione specifica da definire e quotare`,
+      ...(durationDays > 1 && lineIsIncluded
         ? [
             `Tubazioni lasciate predisposte: ${leaveLineInstalled === "si" ? "Sì" : "No"}`,
             `Area di posa sicura tra i getti: ${lineAreaSafe === "si" ? "Sì" : "No / da verificare"}`,
@@ -588,14 +612,20 @@ export default function Home() {
       `Flessibilità data: ${flexibility === "tassativa" ? "Data tassativa" : flexibility === "1" ? "± 1 giorno" : "± 3 giorni"}`,
       `Fascia operativa: ${shift === "diurno" ? "Diurna feriale" : "Notturna / festiva · prezzo da confermare"}`,
       `Personale previsto: ${crewPeople} ${crewPeople === 1 ? "persona" : "persone"} per ${crewPeople === 0 ? 0 : crewDays} ${crewDays === 1 ? "giornata" : "giornate"}`,
-      `Composizione squadra: ${serviceSummary}${needBoom === "si" ? " + 2 addetti braccio" : ""}`,
+      `Composizione squadra: ${serviceSummary}`,
       `Noleggio macchina: € ${quote.rental.toLocaleString("it-IT")}`,
       `Personale: € ${quote.crew.toLocaleString("it-IT")}`,
-      `Allestimento una tantum (${logistics.configuration}): € ${logistics.setup.toLocaleString("it-IT")}`,
-      `Disallestimento una tantum (${logistics.configuration}): € ${logistics.teardown.toLocaleString("it-IT")}`,
-      hasStandardConcreteLine
-        ? `Tubazioni: ${ironTubes + rubberTubes} pezzi per un totale di € ${tubeCost.toLocaleString("it-IT")}`
-        : `Tubazioni specifiche malte/massetti: DA QUOTARE`,
+      lineSetupIsIncluded
+        ? `Allestimento una tantum (${logistics.configuration}): € ${logistics.setup.toLocaleString("it-IT")}`
+        : `Allestimento linea: ESCLUSO`,
+      lineSetupIsIncluded
+        ? `Disallestimento una tantum (${logistics.configuration}): € ${logistics.teardown.toLocaleString("it-IT")}`
+        : `Disallestimento linea: ESCLUSO`,
+      !lineIsIncluded
+        ? `Tubazioni: ESCLUSE`
+        : hasStandardConcreteLine
+          ? `Tubazioni: ${ironTubes + rubberTubes} pezzi per un totale di € ${tubeCost.toLocaleString("it-IT")}`
+          : `Tubazioni specifiche malte/massetti: DA QUOTARE`,
       `Totale indicativo${requiresSurvey ? " salvo sopralluogo" : ""}${requiresPriceReview ? " e conferma economica" : ""}: € ${quote.total.toLocaleString("it-IT")}`,
       ``,
       `Riferimento: ${quoteReference}`,
@@ -675,36 +705,48 @@ export default function Home() {
                   <button
                     key={x[0]}
                     className={service === x[0] ? "selected" : ""}
-                    onClick={() => setService(x[0] as Service)}
+                    onClick={() => chooseService(x[0] as Service)}
                   >
                     <b>{x[1]}</b>
                     <small>
-                      {equipment === "city" && x[0] === "freddo"
-                        ? "Mezzo + autista"
-                        : equipment === "city" && x[0] === "semifreddo"
-                          ? "Mezzo + preposto + autista"
-                          : equipment === "city" && x[0] === "caldo"
-                            ? "Squadra completa + autista"
-                            : x[2]}
+                      {x[0] === "freddo"
+                        ? equipment === "autopompa" || equipment === "city"
+                          ? "Non disponibile per questa macchina"
+                          : "Solo mezzo · senza personale e tubi"
+                        : x[0] === "semifreddo"
+                          ? equipment === "autopompa"
+                            ? "Solo autista · senza tubi"
+                            : equipment === "city"
+                              ? "Autista + pompista"
+                              : "Mezzo + preposto"
+                          : equipment === "autopompa"
+                            ? "1 operatore · senza tubi"
+                            : "2 persone base + tubi"}
                     </small>
                   </button>
                 ))}
               </div>
               <h4 className="group-title">Macchina principale</h4>
               <div className="equipment-grid">
-                {equipmentOptions.map((x) => (
-                  <button
-                    key={x[0]}
-                    className={equipment === x[0] ? "selected" : ""}
-                    onClick={() => chooseEquipment(x[0])}
-                  >
-                    <span className="radio" />
-                    <h3>{x[1]}</h3>
-                    <p>{x[2]}</p>
-                  </button>
-                ))}
+                {equipmentOptions.map((x) => {
+                  const option = x[0] as Equipment;
+                  const allowed = equipmentAllowed(service, option);
+                  return (
+                    <button
+                      key={option}
+                      className={`${equipment === option ? "selected" : ""}${!allowed ? " unavailable" : ""}`}
+                      disabled={!allowed}
+                      onClick={() => chooseEquipment(option)}
+                    >
+                      <span className="radio" />
+                      <h3>{x[1]}</h3>
+                      <p>{x[2]}</p>
+                      {!allowed && <small>Non disponibile con la formula a freddo</small>}
+                    </button>
+                  );
+                })}
               </div>
-              {equipment !== "malte" && <div className="boom-question">
+              {boomAllowed(service, equipment) && <div className="boom-question">
                 <div>
                   <b>Serve anche un braccio stazionario?</b>
                   <span>
@@ -927,7 +969,12 @@ export default function Home() {
                 </label>
                 <div className="line-calculation wide">
                   <b>Distinta linea stimata</b>
-                  {hasStandardConcreteLine ? (
+                  {!lineIsIncluded ? (
+                    <span>
+                      Tubazioni escluse dalla formula selezionata. Le misure
+                      restano raccolte per la verifica tecnica.
+                    </span>
+                  ) : hasStandardConcreteLine ? (
                     <span>
                       {lineMeters} m di sviluppo · {ironTubes} tubi ferro +{" "}
                       {rubberTubes} tubo gomma da 3 m · {curveCount} curve ·{" "}
@@ -940,12 +987,14 @@ export default function Home() {
                     </span>
                   )}
                   <small>
-                    {hasStandardConcreteLine
+                    {!lineIsIncluded
+                      ? "Canone tubazioni non incluso nel preventivo."
+                      : hasStandardConcreteLine
                       ? `Canone tubazioni: € ${tubeCost.toLocaleString("it-IT")} per il periodo selezionato.`
                       : "Tubazioni specifiche non presenti nel listino: costo da quotare da Dalecom."}
                   </small>
                 </div>
-                {durationDays > 1 && (
+                {durationDays > 1 && lineIsIncluded && (
                   <div className="operational-questions wide">
                     <div className="operational-head">
                       <b>Organizzazione della linea tra un getto e l’altro</b>
@@ -1240,7 +1289,9 @@ export default function Home() {
                     {volume} m³ per getto · {totalVolume} m³ totali · {totalPours} getti previsti · {poursPerWeek}/settimana
                   </span>
                   <small>
-                    {hasStandardConcreteLine
+                    {!lineIsIncluded
+                      ? "Tubazioni escluse dalla formula selezionata"
+                      : hasStandardConcreteLine
                       ? `${ironTubes} tubi ferro + ${rubberTubes} tubo gomma da 3 m · ${curveCount} curve · ${kitCount} kit`
                       : `Tubazione specifica malte/massetti per ${lineMeters} m · costo da quotare`}
                     {needBoom === "si" ? ` · ${boomAssetName}` : ""}
@@ -1251,13 +1302,18 @@ export default function Home() {
                       Transmat: tubazione {transmatHose} richiesta per Dmax {aggregateSize} mm.
                     </small>
                   )}
-                  {durationDays > 1 && (
+                  {durationDays > 1 && lineIsIncluded && (
                     <small className="line-plan-summary">
                       Linea tra i getti: {leaveLineInstalled === "si" ? "lasciata predisposta" : "rimossa dopo ogni getto"} · area {lineAreaSafe === "si" ? "protetta" : "da verificare"} · pulizia {lineCleaning === "dalecom" ? "Dalecom" : "cliente"}
                     </small>
                   )}
                   {equipment === "city" && (
                     <small className="crew-note">City Pump su camion: autista sempre incluso nella squadra.</small>
+                  )}
+                  {service === "caldo" && equipment !== "autopompa" && needBoom === "no" && (
+                    <small className="crew-note">
+                      Squadra valorizzata con 2 persone; l’eventuale terzo operatore sarà confermato da Dalecom.
+                    </small>
                   )}
                   {requiresSurvey && (
                     <small className="survey-warning">
@@ -1269,7 +1325,7 @@ export default function Home() {
                       ⚠ Il turno notturno/festivo non ha una maggiorazione definita nel listino: prezzo da confermare.
                     </small>
                   )}
-                  {!hasStandardConcreteLine && (
+                  {lineIsIncluded && !hasStandardConcreteLine && (
                     <small className="survey-warning">
                       ⚠ Il totale non include la tubazione specifica malte/massetti, assente dal listino disponibile.
                     </small>
@@ -1285,25 +1341,32 @@ export default function Home() {
                       <span>
                         Personale operativo · {crewPeople} {crewPeople === 1 ? "persona" : "persone"} × {crewDays} {crewDays === 1 ? "giornata" : "giornate"}
                         {equipment === "city" ? " · autista City Pump incluso" : ""}
+                        {service === "caldo" && equipment !== "autopompa" && needBoom === "no" ? " · squadra base, terzo da confermare" : ""}
                       </span>
                       <b>€ {quote.crew.toLocaleString("it-IT")}</b>
                     </div>
                   )}
-                  <div>
-                    <span>Allestimento cantiere · una tantum · {logistics.configuration} · {logistics.band}</span>
-                    <b>€ {logistics.setup.toLocaleString("it-IT")}</b>
-                  </div>
-                  <div>
-                    <span>Disallestimento e rientro · una tantum · {logistics.configuration}</span>
-                    <b>€ {logistics.teardown.toLocaleString("it-IT")}</b>
-                  </div>
+                  {lineSetupIsIncluded && (
+                    <div>
+                      <span>Allestimento cantiere · una tantum · {logistics.configuration} · {logistics.band}</span>
+                      <b>€ {logistics.setup.toLocaleString("it-IT")}</b>
+                    </div>
+                  )}
+                  {lineSetupIsIncluded && (
+                    <div>
+                      <span>Disallestimento e rientro · una tantum · {logistics.configuration}</span>
+                      <b>€ {logistics.teardown.toLocaleString("it-IT")}</b>
+                    </div>
+                  )}
                   <div>
                     <span>
-                      {hasStandardConcreteLine
+                      {!lineIsIncluded
+                        ? "Tubazioni · escluse dalla formula"
+                        : hasStandardConcreteLine
                         ? `Tubazioni · ${ironTubes + rubberTubes} pezzi · per un totale di`
                         : "Tubazioni specifiche malte/massetti"}
                     </span>
-                    <b>{hasStandardConcreteLine ? `€ ${quote.tubes.toLocaleString("it-IT")}` : "Da quotare"}</b>
+                    <b>{!lineIsIncluded ? "Escluse" : hasStandardConcreteLine ? `€ ${quote.tubes.toLocaleString("it-IT")}` : "Da quotare"}</b>
                   </div>
                   {quote.boom > 0 && (
                     <div>
@@ -1320,7 +1383,7 @@ export default function Home() {
                 </div>
                 <div className="total">
                   <span>
-                    Totale indicativo{!hasStandardConcreteLine ? " parziale" : ""}{requiresSurvey ? " salvo sopralluogo" : ""}
+                    Totale indicativo{lineIsIncluded && !hasStandardConcreteLine ? " parziale" : ""}{requiresSurvey ? " salvo sopralluogo" : ""}
                     <small>
                       IVA esclusa · {requiresPriceReview ? "importo da confermare da Dalecom" : "conferma tecnica finale Dalecom"}
                     </small>
