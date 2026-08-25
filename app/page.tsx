@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import { useState } from "react";
 
 type Place = { name: string; km: number };
 type Asset = {
@@ -305,13 +306,44 @@ const aggregateOptions: Record<string, number[]> = {
   malte: [8],
 };
 
-function logisticsFor(km: number) {
-  if (km <= 50) return { band: "Fino a 50 km", oneWay: 2600 };
-  if (km <= 150) return { band: "Da 50 a 150 km", oneWay: 3640 };
-  if (km <= 300) return { band: "Da 150 a 300 km", oneWay: 4680 };
-  if (km <= 500) return { band: "Da 300 a 500 km", oneWay: 5720 };
-  if (km <= 650) return { band: "Da 500 a 650 km", oneWay: 6760 };
-  return { band: "Oltre 650 km / isole", oneWay: 9100 };
+const assetRates: Record<string, { day: number; week: number; month: number }> = {
+  "Putzmeister M20 · GJ584JY": { day: 820, week: 2960, month: 9020 },
+  "MAN TGA 26.4 · GY967NP": { day: 820, week: 2960, month: 9020 },
+  "Mecbo City Pump · HA095NA": { day: 1370, week: 4890, month: 14570 },
+  "Scania City Pump · GY915DK": { day: 380, week: 1420, month: 4590 },
+  "Putzmeister P715 TD": { day: 370, week: 1350, month: 4110 },
+  "Turbosol TB30 Cingolata": { day: 460, week: 1650, month: 4980 },
+  "Putzmeister SP 11 LMR": { day: 90, week: 320, month: 1030 },
+  "Turbosol Transmat 250": { day: 130, week: 470, month: 1460 },
+};
+
+function rentalForDuration(name: string, days: number) {
+  const rate = assetRates[name] ?? { day: 0, week: 0, month: 0 };
+  if (days < 5) return rate.day * days;
+  if (days < 20) return rate.week * Math.ceil(days / 5);
+  if (days === 20) return rate.month;
+  return rate.month + rate.week * Math.ceil((days - 20) / 5);
+}
+
+function logisticsFor(km: number, withBoom: boolean) {
+  const bands = [
+    "Fino a 50 km",
+    "Da 50 a 150 km",
+    "Da 150 a 300 km",
+    "Da 300 a 500 km",
+    "Da 500 a 650 km",
+    "Oltre 650 km / isole",
+  ];
+  const index = km <= 50 ? 0 : km <= 150 ? 1 : km <= 300 ? 2 : km <= 500 ? 3 : km <= 650 ? 4 : 5;
+  const pumpLineSetup = [1300, 1716, 1976, 2392, 2704, 1300];
+  const pumpLineTeardown = [1716, 1976, 2392, 2704, 1300, 1716];
+  const pumpBoom = [2600, 3640, 4680, 5720, 6760, 9100];
+  return {
+    band: bands[index],
+    setup: withBoom ? pumpBoom[index] : pumpLineSetup[index],
+    teardown: withBoom ? pumpBoom[index] : pumpLineTeardown[index],
+    configuration: withBoom ? "Pompa + braccio" : "Pompa + linea",
+  };
 }
 
 export default function Home() {
@@ -331,9 +363,12 @@ export default function Home() {
   const [elevation, setElevation] = useState("0");
   const [needBoom, setNeedBoom] = useState("no");
   const [needCompressor, setNeedCompressor] = useState("no");
+  const [leaveLineInstalled, setLeaveLineInstalled] = useState("si");
+  const [lineAreaSafe, setLineAreaSafe] = useState("si");
+  const [lineCleaning, setLineCleaning] = useState("dalecom");
   const [floors, setFloors] = useState("1");
   const [date, setDate] = useState("2026-08-26");
-  const [duration, setDuration] = useState("3");
+  const [duration, setDuration] = useState("10");
   const [shift, setShift] = useState("diurno");
   const [intervention, setIntervention] = useState(interventions.autopompa[0]);
   const [assetIndex, setAssetIndex] = useState(0);
@@ -352,7 +387,7 @@ export default function Home() {
   const place = towns.find((x) => x.name === city) ?? towns[0];
   const selectedEquipment =
     equipmentOptions.find((x) => x[0] === equipment) ?? equipmentOptions[0];
-  const logistics = logisticsFor(place.km);
+  const logistics = logisticsFor(place.km, needBoom === "si");
   const aggregateSize = Number(granulometry.replace("D", ""));
   const matchedAssets = assetsByEquipment[equipment].filter(
     (asset) => aggregateSize <= asset.maxAggregate,
@@ -396,60 +431,65 @@ export default function Home() {
   const minimumDurationDays = minimumWeeks * 5;
   const crewDays = totalPours;
   const pumpCrew = service === "freddo" ? 0 : service === "semifreddo" ? 1 : 2;
+  const cityDriver = equipment === "city" ? 1 : 0;
   const boomCrew = needBoom === "si" ? 2 : 0;
-  const crewPeople = pumpCrew + boomCrew;
+  const crewPeople = pumpCrew + cityDriver + boomCrew;
+  const pumpCrewDailyCost =
+    service === "freddo" ? 0 : service === "semifreddo" ? 630 : 1116;
+  const cityDriverDailyCost = cityDriver ? 486 : 0;
+  const boomCrewDailyCost = boomCrew ? 972 : 0;
+  const crewDailyCost = pumpCrewDailyCost + cityDriverDailyCost + boomCrewDailyCost;
+  const serviceSummary =
+    service === "caldo"
+      ? equipment === "city"
+        ? "Squadra completa con autista City Pump"
+        : "Squadra completa"
+      : service === "semifreddo"
+        ? equipment === "city"
+          ? "Preposto Dalecom e autista City Pump"
+          : "Mezzo e preposto Dalecom"
+        : equipment === "city"
+          ? "Mezzo con autista City Pump"
+          : "Noleggio senza personale";
   const compressorCost =
     needCompressor !== "si"
       ? 0
       : durationDays < 5
-        ? 120 * durationDays
+        ? 330 * durationDays
         : durationDays < 20
-          ? 430 * Math.ceil(durationDays / 5)
+          ? 1170 * Math.ceil(durationDays / 5)
           : durationDays === 20
-            ? 1300
-            : 1300 + 430 * Math.ceil((durationDays - 20) / 5);
-  useEffect(() => {
-    if (durationDays >= minimumDurationDays) return;
+            ? 3430
+            : 3430 + 1170 * Math.ceil((durationDays - 20) / 5);
+  const ensureMinimumDuration = (pours: number, weekly: number) => {
+    const requiredDays = Math.ceil(pours / Math.max(1, weekly)) * 5;
+    if (durationDays >= requiredDays) return;
     const nextDuration = [1, 3, 5, 10, 15, 20].find(
-      (days) => days >= minimumDurationDays,
+      (days) => days >= requiredDays,
     );
-    setDuration(String(nextDuration ?? minimumDurationDays));
-  }, [durationDays, minimumDurationDays]);
+    setDuration(String(nextDuration ?? requiredDays));
+  };
   const clientValid =
     client.company.trim().length > 0 &&
     client.name.trim().length > 0 &&
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(client.email) &&
     client.phone.trim().length > 0 &&
     client.privacy;
-  const quote = useMemo(() => {
-    const rental = Number(selectedEquipment[3]) * Number(duration);
-    const crew = 400 * crewPeople * crewDays;
-    const extras =
-      (shift === "notturno" ? 450 : 0) + (access === "difficile" ? 380 : 0);
-    return {
-      rental,
-      crew,
-      extras,
-      tubes: tubeCost,
-      boom: boomCost,
-      compressor: compressorCost,
-      transport: logistics.oneWay * 2,
-      total:
-        rental + crew + extras + tubeCost + boomCost + compressorCost + logistics.oneWay * 2,
-    };
-  }, [
-    selectedEquipment,
-    service,
-    duration,
-    crewDays,
-    crewPeople,
-    shift,
-    access,
-    logistics,
-    tubeCost,
-    boomCost,
-    compressorCost,
-  ]);
+  const rentalCost = rentalForDuration(selectedAsset.name, durationDays);
+  const crewCost = crewDailyCost * crewDays;
+  const extrasCost =
+    (shift === "notturno" ? 450 : 0) + (access === "difficile" ? 380 : 0);
+  const quote = {
+    rental: rentalCost,
+    crew: crewCost,
+    extras: extrasCost,
+    tubes: tubeCost,
+    boom: boomCost,
+    compressor: compressorCost,
+    transport: logistics.setup + logistics.teardown,
+    total:
+      rentalCost + crewCost + extrasCost + tubeCost + boomCost + compressorCost + logistics.setup + logistics.teardown,
+  };
   const chooseRegion = (v: string) => {
     setRegion(v);
     const p = Object.keys(areas[v])[0];
@@ -502,12 +542,24 @@ export default function Home() {
       `Ritmo previsto: ${poursPerWeek} getti a settimana (${minimumWeeks} ${minimumWeeks === 1 ? "settimana" : "settimane"} minime)`,
       `Granulometria: ${granulometry.replace("D", "Dmax ")} mm`,
       `Linea: ${lineMeters} m (${ironTubes} tubi ferro + ${rubberTubes} gomma, ${curveCount} curve, ${kitCount} kit)`,
+      ...(durationDays > 1
+        ? [
+            `Tubazioni lasciate predisposte: ${leaveLineInstalled === "si" ? "Sì" : "No"}`,
+            `Area di posa sicura tra i getti: ${lineAreaSafe === "si" ? "Sì" : "No / da verificare"}`,
+            `Pulizia linea tra i getti: ${lineCleaning === "dalecom" ? "Dalecom" : "Cliente"}`,
+          ]
+        : []),
       `Quota getto: ${elevation} m · Edificio: ${floors} piani`,
       `Braccio aggiuntivo: ${needBoom === "si" ? "Sì" : "No"}`,
-      `Compressore: ${needCompressor === "si" ? `ROTAIR MDVN53 · € ${compressorCost.toLocaleString("it-IT")}` : "Non richiesto"}`,
+      `Compressore: ${needCompressor === "si" ? `ATLAS XAVS186 · € ${compressorCost.toLocaleString("it-IT")}` : "Non richiesto"}`,
       `Cantiere: ${city} (${place.km} km da Paese)`,
       `Periodo: ${durationLabel} dal ${new Date(date).toLocaleDateString("it-IT")}`,
       `Personale previsto: ${crewPeople} ${crewPeople === 1 ? "persona" : "persone"} per ${crewPeople === 0 ? 0 : crewDays} ${crewDays === 1 ? "giornata" : "giornate"}`,
+      `Composizione squadra: ${serviceSummary}${needBoom === "si" ? " + 2 addetti braccio" : ""}`,
+      `Noleggio macchina: € ${quote.rental.toLocaleString("it-IT")}`,
+      `Personale: € ${quote.crew.toLocaleString("it-IT")}`,
+      `Allestimento una tantum (${logistics.configuration}): € ${logistics.setup.toLocaleString("it-IT")}`,
+      `Disallestimento una tantum (${logistics.configuration}): € ${logistics.teardown.toLocaleString("it-IT")}`,
       `Tubazioni: ${ironTubes + rubberTubes} pezzi per un totale di € ${tubeCost.toLocaleString("it-IT")}`,
       `Totale indicativo${access === "difficile" ? " salvo sopralluogo" : ""}: € ${quote.total.toLocaleString("it-IT")}`,
       ``,
@@ -520,7 +572,7 @@ export default function Home() {
     <main>
       <header className="topbar">
         <div className="brand">
-          <img src="/dalecom-logo.png" alt="Dalecom" />
+          <Image src="/dalecom-logo.png" alt="Dalecom" width={154} height={47} priority />
           <span>Preventivo immediato</span>
         </div>
         <div className="secure">
@@ -591,7 +643,15 @@ export default function Home() {
                     onClick={() => setService(x[0])}
                   >
                     <b>{x[1]}</b>
-                    <small>{x[2]}</small>
+                    <small>
+                      {equipment === "city" && x[0] === "freddo"
+                        ? "Mezzo + autista"
+                        : equipment === "city" && x[0] === "semifreddo"
+                          ? "Mezzo + preposto + autista"
+                          : equipment === "city" && x[0] === "caldo"
+                            ? "Squadra completa + autista"
+                            : x[2]}
+                    </small>
                   </button>
                 ))}
               </div>
@@ -692,7 +752,12 @@ export default function Home() {
                     type="number"
                     min="1"
                     value={volume}
-                    onChange={(e) => setVolume(e.target.value)}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setVolume(next);
+                      const pours = Math.max(1, Math.ceil((Number(totalVolume) || 1) / Math.max(1, Number(next) || 1)));
+                      ensureMinimumDuration(pours, poursPerWeek);
+                    }}
                   />
                 </label>
                 <label>
@@ -701,7 +766,12 @@ export default function Home() {
                     type="number"
                     min="1"
                     value={totalVolume}
-                    onChange={(e) => setTotalVolume(e.target.value)}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setTotalVolume(next);
+                      const pours = Math.max(1, Math.ceil((Number(next) || volumePerPour) / volumePerPour));
+                      ensureMinimumDuration(pours, poursPerWeek);
+                    }}
                   />
                 </label>
                 <label>
@@ -721,7 +791,11 @@ export default function Home() {
                     min="1"
                     max={totalPours}
                     value={weeklyPours}
-                    onChange={(e) => setWeeklyPours(e.target.value)}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setWeeklyPours(next);
+                      ensureMinimumDuration(totalPours, Math.max(1, Number(next) || 1));
+                    }}
                   />
                   <small>Determina la durata minima necessaria del cantiere.</small>
                 </label>
@@ -826,6 +900,35 @@ export default function Home() {
                     selezionato.
                   </small>
                 </div>
+                {durationDays > 1 && (
+                  <div className="operational-questions wide">
+                    <div className="operational-head">
+                      <b>Organizzazione della linea tra un getto e l’altro</b>
+                      <span>Per cantieri di più giorni dobbiamo sapere se la tubazione può restare predisposta.</span>
+                    </div>
+                    <label>
+                      Lasciamo le tubazioni installate tra i getti?
+                      <select value={leaveLineInstalled} onChange={(e) => setLeaveLineInstalled(e.target.value)}>
+                        <option value="si">Sì, restano predisposte</option>
+                        <option value="no">No, vanno rimosse dopo ogni getto</option>
+                      </select>
+                    </label>
+                    <label>
+                      La linea può restare in un’area protetta e sicura?
+                      <select value={lineAreaSafe} onChange={(e) => setLineAreaSafe(e.target.value)}>
+                        <option value="si">Sì</option>
+                        <option value="no">No / da verificare</option>
+                      </select>
+                    </label>
+                    <label>
+                      Chi gestisce la pulizia tra i getti?
+                      <select value={lineCleaning} onChange={(e) => setLineCleaning(e.target.value)}>
+                        <option value="dalecom">Dalecom</option>
+                        <option value="cliente">Il cliente</option>
+                      </select>
+                    </label>
+                  </div>
+                )}
                 <div className="compressor-question wide">
                   <div>
                     <b>Ti serve anche il compressore?</b>
@@ -943,12 +1046,7 @@ export default function Home() {
                   <small>CONFIGURAZIONE COMPATIBILE</small>
                   <h3>{selectedEquipment[1]}</h3>
                   <p>
-                    {service === "caldo"
-                      ? "Squadra completa"
-                      : service === "semifreddo"
-                        ? "Mezzo e preposto Dalecom"
-                        : "Noleggio senza personale"}{" "}
-                    · {logistics.band}
+                    {serviceSummary} · {logistics.band}
                   </p>
                 </div>
                 <strong>
@@ -982,6 +1080,10 @@ export default function Home() {
                       <span className="qty">{m.qty} unità</span>
                       <span className="tag ok">{m.status}</span>
                     </button>
+                    <div className="machine-rate">
+                      <small>Canone per {durationLabel}</small>
+                      <b>€ {rentalForDuration(m.name, durationDays).toLocaleString("it-IT")}</b>
+                    </div>
                     <button
                       type="button"
                       className="details-button"
@@ -1076,8 +1178,16 @@ export default function Home() {
                   <small>
                     {ironTubes} tubi ferro + {rubberTubes} tubo gomma da 3 m · {curveCount} curve · {kitCount} kit
                     {needBoom === "si" ? " · braccio stazionario richiesto" : ""}
-                    {needCompressor === "si" ? " · compressore ROTAIR MDVN53" : ""}
+                    {needCompressor === "si" ? " · compressore ATLAS XAVS186" : ""}
                   </small>
+                  {durationDays > 1 && (
+                    <small className="line-plan-summary">
+                      Linea tra i getti: {leaveLineInstalled === "si" ? "lasciata predisposta" : "rimossa dopo ogni getto"} · area {lineAreaSafe === "si" ? "protetta" : "da verificare"} · pulizia {lineCleaning === "dalecom" ? "Dalecom" : "cliente"}
+                    </small>
+                  )}
+                  {equipment === "city" && (
+                    <small className="crew-note">City Pump su camion: autista sempre incluso nella squadra.</small>
+                  )}
                 </div>
                 <div className="cost-lines">
                   <div>
@@ -1088,17 +1198,18 @@ export default function Home() {
                     <div>
                       <span>
                         Personale operativo · {crewPeople} {crewPeople === 1 ? "persona" : "persone"} × {crewDays} {crewDays === 1 ? "giornata" : "giornate"}
+                        {equipment === "city" ? " · autista City Pump incluso" : ""}
                       </span>
                       <b>€ {quote.crew.toLocaleString("it-IT")}</b>
                     </div>
                   )}
                   <div>
-                    <span>Allestimento cantiere · una tantum · {logistics.band}</span>
-                    <b>€ {logistics.oneWay.toLocaleString("it-IT")}</b>
+                    <span>Allestimento cantiere · una tantum · {logistics.configuration} · {logistics.band}</span>
+                    <b>€ {logistics.setup.toLocaleString("it-IT")}</b>
                   </div>
                   <div>
-                    <span>Disallestimento e rientro · una tantum</span>
-                    <b>€ {logistics.oneWay.toLocaleString("it-IT")}</b>
+                    <span>Disallestimento e rientro · una tantum · {logistics.configuration}</span>
+                    <b>€ {logistics.teardown.toLocaleString("it-IT")}</b>
                   </div>
                   {quote.extras > 0 && (
                     <div>
@@ -1120,7 +1231,7 @@ export default function Home() {
                   )}
                   {quote.compressor > 0 && (
                     <div>
-                      <span>Compressore ROTAIR MDVN53</span>
+                      <span>Compressore ATLAS XAVS186</span>
                       <b>€ {quote.compressor.toLocaleString("it-IT")}</b>
                     </div>
                   )}
