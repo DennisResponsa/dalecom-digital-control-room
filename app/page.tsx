@@ -306,23 +306,58 @@ const aggregateOptions: Record<string, number[]> = {
   malte: [8],
 };
 
-const assetRates: Record<string, { day: number; week: number; month: number }> = {
-  "Putzmeister M20 · GJ584JY": { day: 820, week: 2960, month: 9020 },
-  "MAN TGA 26.4 · GY967NP": { day: 820, week: 2960, month: 9020 },
-  "Mecbo City Pump · HA095NA": { day: 1370, week: 4890, month: 14570 },
-  "Scania City Pump · GY915DK": { day: 380, week: 1420, month: 4590 },
-  "Putzmeister P715 TD": { day: 370, week: 1350, month: 4110 },
-  "Turbosol TB30 Cingolata": { day: 460, week: 1650, month: 4980 },
-  "Putzmeister SP 11 LMR": { day: 90, week: 320, month: 1030 },
-  "Turbosol Transmat 250": { day: 130, week: 470, month: 1460 },
+type RentalRates = { day: number; week: number; months: number[] };
+
+const assetRates: Record<string, RentalRates> = {
+  "Putzmeister M20 · GJ584JY": { day: 820, week: 2960, months: [9020, 8520, 8830, 7990, 6910, 6170, 5690, 5360, 5290, 5210, 5090, 4990] },
+  "MAN TGA 26.4 · GY967NP": { day: 820, week: 2960, months: [9020, 8520, 8830, 7990, 6910, 6170, 5690, 5360, 5290, 5210, 5090, 4990] },
+  "Mecbo City Pump · HA095NA": { day: 1370, week: 4890, months: [14570, 13720, 14250, 12800, 10930, 9660, 8830, 8250, 8140, 8000, 7800, 7620] },
+  "Scania City Pump · GY915DK": { day: 380, week: 1420, months: [4590, 4390, 4510, 4170, 3720, 3420, 3220, 3080, 3050, 3020, 2970, 2930] },
+  "Putzmeister P715 TD": { day: 370, week: 1350, months: [4110, 3880, 4020, 3630, 3140, 2800, 2580, 2420, 2390, 2360, 2300, 2260] },
+  "Turbosol TB30 Cingolata": { day: 460, week: 1650, months: [4980, 4700, 4880, 4400, 3790, 3370, 3090, 2900, 2870, 2820, 2750, 2700] },
+  "Putzmeister SP 11 LMR": { day: 90, week: 320, months: [1030, 980, 1010, 930, 820, 750, 700, 670, 660, 650, 640, 630] },
+  "Turbosol Transmat 250": { day: 130, week: 470, months: [1460, 1380, 1430, 1300, 1130, 1020, 940, 890, 880, 870, 850, 840] },
 };
 
+const boomRates: Record<string, RentalRates> = {
+  "Putzmeister MX28 · 28 m": { day: 720, week: 2540, months: [7440, 6980, 7270, 6480, 5470, 4780, 4330, 4020, 3960, 3890, 3770, 3680] },
+  "Putzmeister MX36-4 · 36 m": { day: 690, week: 2440, months: [7150, 6700, 6980, 6230, 5260, 4600, 4170, 3870, 3810, 3740, 3630, 3540] },
+};
+
+const compressorRates: RentalRates = {
+  day: 330,
+  week: 1170,
+  months: [3430, 3220, 3350, 2990, 2530, 2210, 2010, 1870, 1840, 1800, 1750, 1710],
+};
+
+function rentalForRates(rate: RentalRates, days: number) {
+  const safeDays = Math.max(0, Math.ceil(days));
+  const shortTerm = (remainingDays: number) => {
+    const fullWeeks = Math.floor(remainingDays / 5);
+    const extraDays = remainingDays % 5;
+    return Math.min(
+      rate.day * remainingDays,
+      rate.week * fullWeeks + rate.day * extraDays,
+      rate.week * Math.ceil(remainingDays / 5),
+    );
+  };
+  const candidates = [shortTerm(safeDays)];
+  rate.months.forEach((monthlyRate, index) => {
+    const months = index + 1;
+    const packageDays = months * 20;
+    const packageCost = monthlyRate * months;
+    candidates.push(
+      safeDays <= packageDays
+        ? packageCost
+        : packageCost + shortTerm(safeDays - packageDays),
+    );
+  });
+  return Math.min(...candidates);
+}
+
 function rentalForDuration(name: string, days: number) {
-  const rate = assetRates[name] ?? { day: 0, week: 0, month: 0 };
-  if (days < 5) return rate.day * days;
-  if (days < 20) return rate.week * Math.ceil(days / 5);
-  if (days === 20) return rate.month;
-  return rate.month + rate.week * Math.ceil((days - 20) / 5);
+  const rate = assetRates[name];
+  return rate ? rentalForRates(rate, days) : 0;
 }
 
 function logisticsFor(km: number, withBoom: boolean) {
@@ -410,9 +445,14 @@ export default function Home() {
         ? { iron: 20, rubber: 40 }
         : { iron: 30, rubber: 80 };
   const tubeCost = ironTubes * tubeRates.iron + rubberTubes * tubeRates.rubber;
-  const boomCost =
-    needBoom === "si" && equipment !== "braccio" ? 720 * Number(duration) : 0;
   const durationDays = Number(duration);
+  const boomAssetName = Number(reach) <= 28
+    ? "Putzmeister MX28 · 28 m"
+    : "Putzmeister MX36-4 · 36 m";
+  const boomCost =
+    needBoom === "si" && equipment !== "braccio"
+      ? rentalForRates(boomRates[boomAssetName], durationDays)
+      : 0;
   const durationLabel =
     durationDays === 20
       ? "1 mese"
@@ -428,7 +468,7 @@ export default function Home() {
   );
   const poursPerWeek = Math.max(1, Number(weeklyPours) || 1);
   const minimumWeeks = Math.ceil(totalPours / poursPerWeek);
-  const minimumDurationDays = minimumWeeks * 5;
+  const minimumDurationDays = totalPours === 1 ? 1 : minimumWeeks * 5;
   const crewDays = totalPours;
   const pumpCrew = service === "freddo" ? 0 : service === "semifreddo" ? 1 : 2;
   const cityDriver = equipment === "city" ? 1 : 0;
@@ -452,18 +492,10 @@ export default function Home() {
           ? "Mezzo con autista City Pump"
           : "Noleggio senza personale";
   const compressorCost =
-    needCompressor !== "si"
-      ? 0
-      : durationDays < 5
-        ? 330 * durationDays
-        : durationDays < 20
-          ? 1170 * Math.ceil(durationDays / 5)
-          : durationDays === 20
-            ? 3430
-            : 3430 + 1170 * Math.ceil((durationDays - 20) / 5);
-  const ensureMinimumDuration = (pours: number, weekly: number) => {
-    const requiredDays = Math.ceil(pours / Math.max(1, weekly)) * 5;
-    if (durationDays >= requiredDays) return;
+    needCompressor === "si" ? rentalForRates(compressorRates, durationDays) : 0;
+  const syncRecommendedDuration = (pours: number, weekly: number) => {
+    if (!Number.isFinite(pours) || !Number.isFinite(weekly) || pours < 1 || weekly < 1) return;
+    const requiredDays = pours === 1 ? 1 : Math.ceil(pours / weekly) * 5;
     const nextDuration = [1, 3, 5, 10, 15, 20].find(
       (days) => days >= requiredDays,
     );
@@ -550,7 +582,7 @@ export default function Home() {
           ]
         : []),
       `Quota getto: ${elevation} m · Edificio: ${floors} piani`,
-      `Braccio aggiuntivo: ${needBoom === "si" ? "Sì" : "No"}`,
+      `Braccio aggiuntivo: ${needBoom === "si" ? `Sì · ${boomAssetName}` : "No"}`,
       `Compressore: ${needCompressor === "si" ? `ATLAS XAVS186 · € ${compressorCost.toLocaleString("it-IT")}` : "Non richiesto"}`,
       `Cantiere: ${city} (${place.km} km da Paese)`,
       `Periodo: ${durationLabel} dal ${new Date(date).toLocaleDateString("it-IT")}`,
@@ -755,8 +787,9 @@ export default function Home() {
                     onChange={(e) => {
                       const next = e.target.value;
                       setVolume(next);
+                      if (next === "" || Number(next) < 1) return;
                       const pours = Math.max(1, Math.ceil((Number(totalVolume) || 1) / Math.max(1, Number(next) || 1)));
-                      ensureMinimumDuration(pours, poursPerWeek);
+                      syncRecommendedDuration(pours, poursPerWeek);
                     }}
                   />
                 </label>
@@ -769,8 +802,9 @@ export default function Home() {
                     onChange={(e) => {
                       const next = e.target.value;
                       setTotalVolume(next);
+                      if (next === "" || Number(next) < 1) return;
                       const pours = Math.max(1, Math.ceil((Number(next) || volumePerPour) / volumePerPour));
-                      ensureMinimumDuration(pours, poursPerWeek);
+                      syncRecommendedDuration(pours, poursPerWeek);
                     }}
                   />
                 </label>
@@ -794,7 +828,8 @@ export default function Home() {
                     onChange={(e) => {
                       const next = e.target.value;
                       setWeeklyPours(next);
-                      ensureMinimumDuration(totalPours, Math.max(1, Number(next) || 1));
+                      if (next === "" || Number(next) < 1) return;
+                      syncRecommendedDuration(totalPours, Number(next));
                     }}
                   />
                   <small>Determina la durata minima necessaria del cantiere.</small>
@@ -1177,7 +1212,7 @@ export default function Home() {
                   </span>
                   <small>
                     {ironTubes} tubi ferro + {rubberTubes} tubo gomma da 3 m · {curveCount} curve · {kitCount} kit
-                    {needBoom === "si" ? " · braccio stazionario richiesto" : ""}
+                    {needBoom === "si" ? ` · ${boomAssetName}` : ""}
                     {needCompressor === "si" ? " · compressore ATLAS XAVS186" : ""}
                   </small>
                   {durationDays > 1 && (
@@ -1225,7 +1260,7 @@ export default function Home() {
                   </div>
                   {quote.boom > 0 && (
                     <div>
-                      <span>Braccio stazionario aggiuntivo</span>
+                      <span>Braccio stazionario aggiuntivo · {boomAssetName}</span>
                       <b>€ {quote.boom.toLocaleString("it-IT")}</b>
                     </div>
                   )}
