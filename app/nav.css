@@ -194,6 +194,31 @@ body {
   font-weight: 700;
 }
 
+.survey-warning,
+.validation-warning {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid #f0a374;
+  border-radius: 9px;
+  background: #fff3ea;
+  color: #983c0d !important;
+  font-weight: 700;
+}
+
+.validation-warning span {
+  color: #7a5542;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.primary:disabled {
+  cursor: not-allowed;
+  filter: grayscale(.7);
+  opacity: .45;
+}
+
 .cost-lines > div {
   align-items: center;
   gap: 18px;

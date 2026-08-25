@@ -1,6 +1,18 @@
 "use client";
 import Image from "next/image";
 import { useState } from "react";
+import {
+  boomRates,
+  compressorRates,
+  durationLabel as formatDurationLabel,
+  logisticsFor,
+  personnelFor,
+  recommendedDurationDays,
+  rentalForDuration,
+  rentalForRates,
+  tubingFor,
+} from "./quote-logic";
+import type { Service } from "./quote-logic";
 
 type Place = { name: string; km: number };
 type Asset = {
@@ -11,6 +23,7 @@ type Asset = {
   status: string;
   specs: string[];
   maxAggregate: number;
+  supportedInterventions?: string[];
 };
 const areas: Record<string, Record<string, Place[]>> = {
   Veneto: {
@@ -92,24 +105,17 @@ const areas: Record<string, Record<string, Place[]>> = {
 };
 
 const equipmentOptions = [
-  [
-    "autopompa",
-    "Autopompa carrata",
-    "Per getti con braccio direttamente dal mezzo",
-    "820",
-  ],
-  ["city", "City pump", "Compatta per centri urbani e accessi stretti", "380"],
+  ["autopompa", "Autopompa carrata", "Per getti con braccio direttamente dal mezzo"],
+  ["city", "City pump", "Compatta per centri urbani e accessi stretti"],
   [
     "carrellata",
     "Pompa carrellata / cingolata",
     "Per lunghe distanze e cantieri complessi",
-    "460",
   ],
   [
     "malte",
     "Pompa per malte / intonaci",
     "Per sottofondi, malte e materiali speciali",
-    "190",
   ],
 ];
 const assetsByEquipment: Record<string, Asset[]> = {
@@ -220,7 +226,11 @@ const assetsByEquipment: Record<string, Asset[]> = {
       site: "Paese",
       qty: 1,
       status: "Disponibile",
-      maxAggregate: 8,
+      maxAggregate: 6,
+      supportedInterventions: [
+        "Intonaci interni o esterni",
+        "Malte, boiacche o materiali speciali",
+      ],
       specs: [
         "Malte, intonaci e boiacche",
         "Miscelatore integrato",
@@ -233,10 +243,14 @@ const assetsByEquipment: Record<string, Asset[]> = {
       site: "Bareggio",
       qty: 1,
       status: "Disponibile",
-      maxAggregate: 8,
+      maxAggregate: 30,
+      supportedInterventions: [
+        "Massetti e sottofondi",
+        "Malte, boiacche o materiali speciali",
+      ],
       specs: [
         "Massetti sabbia-cemento",
-        "Trasporto pneumatico",
+        "Dmax 12/20/30 mm con tubo Ø50/65/90",
         "Miscelazione da 250 l",
       ],
     },
@@ -303,87 +317,14 @@ const aggregateOptions: Record<string, number[]> = {
   autopompa: [8, 16, 20, 25, 32],
   city: [8, 16, 20, 25, 32],
   carrellata: [8, 16, 20, 25, 32],
-  malte: [8],
+  malte: [4, 6, 8, 12, 16, 20, 25, 30],
 };
-
-type RentalRates = { day: number; week: number; months: number[] };
-
-const assetRates: Record<string, RentalRates> = {
-  "Putzmeister M20 · GJ584JY": { day: 820, week: 2960, months: [9020, 8520, 8830, 7990, 6910, 6170, 5690, 5360, 5290, 5210, 5090, 4990] },
-  "MAN TGA 26.4 · GY967NP": { day: 820, week: 2960, months: [9020, 8520, 8830, 7990, 6910, 6170, 5690, 5360, 5290, 5210, 5090, 4990] },
-  "Mecbo City Pump · HA095NA": { day: 1370, week: 4890, months: [14570, 13720, 14250, 12800, 10930, 9660, 8830, 8250, 8140, 8000, 7800, 7620] },
-  "Scania City Pump · GY915DK": { day: 380, week: 1420, months: [4590, 4390, 4510, 4170, 3720, 3420, 3220, 3080, 3050, 3020, 2970, 2930] },
-  "Putzmeister P715 TD": { day: 370, week: 1350, months: [4110, 3880, 4020, 3630, 3140, 2800, 2580, 2420, 2390, 2360, 2300, 2260] },
-  "Turbosol TB30 Cingolata": { day: 460, week: 1650, months: [4980, 4700, 4880, 4400, 3790, 3370, 3090, 2900, 2870, 2820, 2750, 2700] },
-  "Putzmeister SP 11 LMR": { day: 90, week: 320, months: [1030, 980, 1010, 930, 820, 750, 700, 670, 660, 650, 640, 630] },
-  "Turbosol Transmat 250": { day: 130, week: 470, months: [1460, 1380, 1430, 1300, 1130, 1020, 940, 890, 880, 870, 850, 840] },
-};
-
-const boomRates: Record<string, RentalRates> = {
-  "Putzmeister MX28 · 28 m": { day: 720, week: 2540, months: [7440, 6980, 7270, 6480, 5470, 4780, 4330, 4020, 3960, 3890, 3770, 3680] },
-  "Putzmeister MX36-4 · 36 m": { day: 690, week: 2440, months: [7150, 6700, 6980, 6230, 5260, 4600, 4170, 3870, 3810, 3740, 3630, 3540] },
-};
-
-const compressorRates: RentalRates = {
-  day: 330,
-  week: 1170,
-  months: [3430, 3220, 3350, 2990, 2530, 2210, 2010, 1870, 1840, 1800, 1750, 1710],
-};
-
-function rentalForRates(rate: RentalRates, days: number) {
-  const safeDays = Math.max(0, Math.ceil(days));
-  const shortTerm = (remainingDays: number) => {
-    const fullWeeks = Math.floor(remainingDays / 5);
-    const extraDays = remainingDays % 5;
-    return Math.min(
-      rate.day * remainingDays,
-      rate.week * fullWeeks + rate.day * extraDays,
-      rate.week * Math.ceil(remainingDays / 5),
-    );
-  };
-  const candidates = [shortTerm(safeDays)];
-  rate.months.forEach((monthlyRate, index) => {
-    const months = index + 1;
-    const packageDays = months * 20;
-    const packageCost = monthlyRate * months;
-    candidates.push(
-      safeDays <= packageDays
-        ? packageCost
-        : packageCost + shortTerm(safeDays - packageDays),
-    );
-  });
-  return Math.min(...candidates);
-}
-
-function rentalForDuration(name: string, days: number) {
-  const rate = assetRates[name];
-  return rate ? rentalForRates(rate, days) : 0;
-}
-
-function logisticsFor(km: number, withBoom: boolean) {
-  const bands = [
-    "Fino a 50 km",
-    "Da 50 a 150 km",
-    "Da 150 a 300 km",
-    "Da 300 a 500 km",
-    "Da 500 a 650 km",
-    "Oltre 650 km / isole",
-  ];
-  const index = km <= 50 ? 0 : km <= 150 ? 1 : km <= 300 ? 2 : km <= 500 ? 3 : km <= 650 ? 4 : 5;
-  const pumpLineSetup = [1300, 1716, 1976, 2392, 2704, 1300];
-  const pumpLineTeardown = [1716, 1976, 2392, 2704, 1300, 1716];
-  const pumpBoom = [2600, 3640, 4680, 5720, 6760, 9100];
-  return {
-    band: bands[index],
-    setup: withBoom ? pumpBoom[index] : pumpLineSetup[index],
-    teardown: withBoom ? pumpBoom[index] : pumpLineTeardown[index],
-    configuration: withBoom ? "Pompa + braccio" : "Pompa + linea",
-  };
-}
 
 export default function Home() {
+  const now = new Date();
+  const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const [step, setStep] = useState(0);
-  const [service, setService] = useState("caldo");
+  const [service, setService] = useState<Service>("caldo");
   const [equipment, setEquipment] = useState("autopompa");
   const [region, setRegion] = useState("Veneto");
   const [province, setProvince] = useState("Treviso");
@@ -402,7 +343,8 @@ export default function Home() {
   const [lineAreaSafe, setLineAreaSafe] = useState("si");
   const [lineCleaning, setLineCleaning] = useState("dalecom");
   const [floors, setFloors] = useState("1");
-  const [date, setDate] = useState("2026-08-26");
+  const [date, setDate] = useState(todayISO);
+  const [flexibility, setFlexibility] = useState("tassativa");
   const [duration, setDuration] = useState("10");
   const [shift, setShift] = useState("diurno");
   const [intervention, setIntervention] = useState(interventions.autopompa[0]);
@@ -424,28 +366,35 @@ export default function Home() {
     equipmentOptions.find((x) => x[0] === equipment) ?? equipmentOptions[0];
   const logistics = logisticsFor(place.km, needBoom === "si");
   const aggregateSize = Number(granulometry.replace("D", ""));
-  const matchedAssets = assetsByEquipment[equipment].filter(
+  const interventionAssets = assetsByEquipment[equipment].filter(
+    (asset) =>
+      !asset.supportedInterventions ||
+      asset.supportedInterventions.includes(intervention),
+  );
+  const availableAggregateOptions = aggregateOptions[equipment].filter((size) =>
+    interventionAssets.some((asset) => size <= asset.maxAggregate),
+  );
+  const matchedAssets = interventionAssets.filter(
     (asset) => aggregateSize <= asset.maxAggregate,
   );
   const selectedAsset = matchedAssets[assetIndex] ?? matchedAssets[0];
-  const lineMeters =
-    Math.max(0, Number(lineDistance) || 0) + Math.abs(Number(elevation) || 0);
-  const tubeCount = Math.max(1, Math.ceil(lineMeters / 3));
-  const rubberTubes = 1;
-  const ironTubes = Math.max(0, tubeCount - rubberTubes);
-  const curveCount =
-    2 +
-    Math.ceil(Math.abs(Number(elevation) || 0) / 12) +
-    (needBoom === "si" ? 1 : 0);
-  const kitCount = Math.max(1, Math.ceil(Number(floors) || 1));
-  const tubeRates =
-    Number(duration) <= 1
-      ? { iron: 10, rubber: 10 }
-      : Number(duration) <= 7
-        ? { iron: 20, rubber: 40 }
-        : { iron: 30, rubber: 80 };
-  const tubeCost = ironTubes * tubeRates.iron + rubberTubes * tubeRates.rubber;
   const durationDays = Number(duration);
+  const tubing = tubingFor(
+    Number(lineDistance) || 0,
+    Number(elevation) || 0,
+    Number(floors) || 1,
+    needBoom === "si",
+    durationDays,
+  );
+  const {
+    lineMeters,
+    ironTubes,
+    rubberTubes,
+    curves: curveCount,
+    kits: kitCount,
+    cost: tubeCost,
+  } = tubing;
+  const hasStandardConcreteLine = equipment !== "malte";
   const boomAssetName = Number(reach) <= 28
     ? "Putzmeister MX28 · 28 m"
     : "Putzmeister MX36-4 · 36 m";
@@ -453,14 +402,7 @@ export default function Home() {
     needBoom === "si" && equipment !== "braccio"
       ? rentalForRates(boomRates[boomAssetName], durationDays)
       : 0;
-  const durationLabel =
-    durationDays === 20
-      ? "1 mese"
-      : durationDays >= 5 && durationDays % 5 === 0
-        ? `${durationDays / 5} ${durationDays === 5 ? "settimana" : "settimane"}`
-      : durationDays === 1
-        ? "1 giornata"
-        : `${durationDays} giornate`;
+  const durationLabel = formatDurationLabel(durationDays);
   const volumePerPour = Math.max(1, Number(volume) || 1);
   const totalPours = Math.max(
     1,
@@ -468,17 +410,11 @@ export default function Home() {
   );
   const poursPerWeek = Math.max(1, Number(weeklyPours) || 1);
   const minimumWeeks = Math.ceil(totalPours / poursPerWeek);
-  const minimumDurationDays = totalPours === 1 ? 1 : minimumWeeks * 5;
+  const minimumDurationDays = recommendedDurationDays(totalPours, poursPerWeek);
   const crewDays = totalPours;
-  const pumpCrew = service === "freddo" ? 0 : service === "semifreddo" ? 1 : 2;
-  const cityDriver = equipment === "city" ? 1 : 0;
-  const boomCrew = needBoom === "si" ? 2 : 0;
-  const crewPeople = pumpCrew + cityDriver + boomCrew;
-  const pumpCrewDailyCost =
-    service === "freddo" ? 0 : service === "semifreddo" ? 630 : 1116;
-  const cityDriverDailyCost = cityDriver ? 486 : 0;
-  const boomCrewDailyCost = boomCrew ? 972 : 0;
-  const crewDailyCost = pumpCrewDailyCost + cityDriverDailyCost + boomCrewDailyCost;
+  const crew = personnelFor(service, equipment, needBoom === "si");
+  const crewPeople = crew.people;
+  const crewDailyCost = crew.dailyCost;
   const serviceSummary =
     service === "caldo"
       ? equipment === "city"
@@ -495,7 +431,7 @@ export default function Home() {
     needCompressor === "si" ? rentalForRates(compressorRates, durationDays) : 0;
   const syncRecommendedDuration = (pours: number, weekly: number) => {
     if (!Number.isFinite(pours) || !Number.isFinite(weekly) || pours < 1 || weekly < 1) return;
-    const requiredDays = pours === 1 ? 1 : Math.ceil(pours / weekly) * 5;
+    const requiredDays = recommendedDurationDays(pours, weekly);
     const nextDuration = [1, 3, 5, 10, 15, 20].find(
       (days) => days >= requiredDays,
     );
@@ -507,20 +443,53 @@ export default function Home() {
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(client.email) &&
     client.phone.trim().length > 0 &&
     client.privacy;
-  const rentalCost = rentalForDuration(selectedAsset.name, durationDays);
+  const rentalCost = selectedAsset
+    ? rentalForDuration(selectedAsset.name, durationDays)
+    : 0;
   const crewCost = crewDailyCost * crewDays;
-  const extrasCost =
-    (shift === "notturno" ? 450 : 0) + (access === "difficile" ? 380 : 0);
+  const boomBeyondFleet = needBoom === "si" && Number(reach) > 36;
+  const repeatedLineHandling =
+    durationDays > 1 &&
+    (leaveLineInstalled === "no" || lineAreaSafe === "no");
+  const requiresSurvey =
+    access === "difficile" || boomBeyondFleet || repeatedLineHandling || place.km > 500;
+  const requiresPriceReview =
+    requiresSurvey || shift === "notturno" || !hasStandardConcreteLine;
+  const quoteReference = `DL-${date.replaceAll("-", "")}`;
+  const transmatHose =
+    selectedAsset?.name === "Turbosol Transmat 250"
+      ? aggregateSize <= 12
+        ? "Ø50"
+        : aggregateSize <= 20
+          ? "Ø65"
+          : "Ø90"
+      : null;
+  const stepOneValid =
+    Number.isFinite(Number(volume)) &&
+    Number(volume) >= 1 &&
+    Number.isFinite(Number(totalVolume)) &&
+    Number(totalVolume) >= Number(volume) &&
+    Number.isFinite(Number(weeklyPours)) &&
+    Number(weeklyPours) >= 1 &&
+    Number(weeklyPours) <= totalPours &&
+    Number.isFinite(Number(lineDistance)) &&
+    Number(lineDistance) >= 0 &&
+    Number.isFinite(Number(elevation)) &&
+    Number.isFinite(Number(floors)) &&
+    Number(floors) >= 1 &&
+    matchedAssets.length > 0;
+  const stepTwoValid =
+    date >= todayISO && durationDays >= minimumDurationDays;
+  const currentStepValid = step === 1 ? stepOneValid : step === 2 ? stepTwoValid : true;
   const quote = {
     rental: rentalCost,
     crew: crewCost,
-    extras: extrasCost,
-    tubes: tubeCost,
+    tubes: hasStandardConcreteLine ? tubeCost : 0,
     boom: boomCost,
     compressor: compressorCost,
     transport: logistics.setup + logistics.teardown,
     total:
-      rentalCost + crewCost + extrasCost + tubeCost + boomCost + compressorCost + logistics.setup + logistics.teardown,
+      rentalCost + crewCost + (hasStandardConcreteLine ? tubeCost : 0) + boomCost + compressorCost + logistics.setup + logistics.teardown,
   };
   const chooseRegion = (v: string) => {
     setRegion(v);
@@ -534,10 +503,34 @@ export default function Home() {
   };
   const chooseEquipment = (v: string) => {
     setEquipment(v);
-    if (!aggregateOptions[v].includes(Number(granulometry.replace("D", "")))) {
-      setGranulometry(`D${aggregateOptions[v][0]}`);
+    if (v === "malte") setNeedBoom("no");
+    const nextIntervention = interventions[v][0];
+    const candidates = assetsByEquipment[v].filter(
+      (asset) =>
+        !asset.supportedInterventions ||
+        asset.supportedInterventions.includes(nextIntervention),
+    );
+    const validSizes = aggregateOptions[v].filter((size) =>
+      candidates.some((asset) => size <= asset.maxAggregate),
+    );
+    if (!validSizes.includes(Number(granulometry.replace("D", "")))) {
+      setGranulometry(`D${validSizes[0]}`);
     }
-    setIntervention(interventions[v][0]);
+    setIntervention(nextIntervention);
+    setAssetIndex(0);
+    setDetailsIndex(null);
+  };
+  const chooseIntervention = (value: string) => {
+    setIntervention(value);
+    const candidates = assetsByEquipment[equipment].filter(
+      (asset) =>
+        !asset.supportedInterventions ||
+        asset.supportedInterventions.includes(value),
+    );
+    const validSizes = aggregateOptions[equipment].filter((size) =>
+      candidates.some((asset) => size <= asset.maxAggregate),
+    );
+    if (!validSizes.includes(aggregateSize)) setGranulometry(`D${validSizes[0]}`);
     setAssetIndex(0);
     setDetailsIndex(null);
   };
@@ -548,15 +541,18 @@ export default function Home() {
   const submitLead = () => {
     if (!clientValid) return;
     setConfirmed(true);
-    const subject = `${access === "difficile" ? "CONCORDARE SOPRALLUOGO · " : ""}Richiesta preventivo Dalecom · ${client.company} · DL-2026-0826`;
+    const subject = `${requiresSurvey ? "CONCORDARE SOPRALLUOGO · " : ""}Richiesta preventivo Dalecom · ${client.company} · ${quoteReference}`;
     const body = [
-      ...(access === "difficile"
+      ...(requiresSurvey
         ? [
             `========================================`,
             `⚠  CONCORDARE SOPRALLUOGO  ⚠`,
             `========================================`,
             ``,
           ]
+        : []),
+      ...(shift === "notturno"
+        ? [`⚠  PREZZO TURNO NOTTURNO/FESTIVO DA CONFERMARE  ⚠`, ``]
         : []),
       `Nuovo lead dal configuratore Dalecom`,
       ``,
@@ -573,7 +569,10 @@ export default function Home() {
       `Numero totale getti previsti: ${totalPours}`,
       `Ritmo previsto: ${poursPerWeek} getti a settimana (${minimumWeeks} ${minimumWeeks === 1 ? "settimana" : "settimane"} minime)`,
       `Granulometria: ${granulometry.replace("D", "Dmax ")} mm`,
-      `Linea: ${lineMeters} m (${ironTubes} tubi ferro + ${rubberTubes} gomma, ${curveCount} curve, ${kitCount} kit)`,
+      ...(transmatHose ? [`Tubazione Transmat richiesta: ${transmatHose}`] : []),
+      hasStandardConcreteLine
+        ? `Linea: ${lineMeters} m (${ironTubes} tubi ferro + ${rubberTubes} gomma, ${curveCount} curve, ${kitCount} kit)`
+        : `Linea malte/massetti: ${lineMeters} m · tubazione specifica da definire e quotare`,
       ...(durationDays > 1
         ? [
             `Tubazioni lasciate predisposte: ${leaveLineInstalled === "si" ? "Sì" : "No"}`,
@@ -585,17 +584,21 @@ export default function Home() {
       `Braccio aggiuntivo: ${needBoom === "si" ? `Sì · ${boomAssetName}` : "No"}`,
       `Compressore: ${needCompressor === "si" ? `ATLAS XAVS186 · € ${compressorCost.toLocaleString("it-IT")}` : "Non richiesto"}`,
       `Cantiere: ${city} (${place.km} km da Paese)`,
-      `Periodo: ${durationLabel} dal ${new Date(date).toLocaleDateString("it-IT")}`,
+      `Periodo: ${durationLabel} dal ${new Date(`${date}T12:00:00`).toLocaleDateString("it-IT")}`,
+      `Flessibilità data: ${flexibility === "tassativa" ? "Data tassativa" : flexibility === "1" ? "± 1 giorno" : "± 3 giorni"}`,
+      `Fascia operativa: ${shift === "diurno" ? "Diurna feriale" : "Notturna / festiva · prezzo da confermare"}`,
       `Personale previsto: ${crewPeople} ${crewPeople === 1 ? "persona" : "persone"} per ${crewPeople === 0 ? 0 : crewDays} ${crewDays === 1 ? "giornata" : "giornate"}`,
       `Composizione squadra: ${serviceSummary}${needBoom === "si" ? " + 2 addetti braccio" : ""}`,
       `Noleggio macchina: € ${quote.rental.toLocaleString("it-IT")}`,
       `Personale: € ${quote.crew.toLocaleString("it-IT")}`,
       `Allestimento una tantum (${logistics.configuration}): € ${logistics.setup.toLocaleString("it-IT")}`,
       `Disallestimento una tantum (${logistics.configuration}): € ${logistics.teardown.toLocaleString("it-IT")}`,
-      `Tubazioni: ${ironTubes + rubberTubes} pezzi per un totale di € ${tubeCost.toLocaleString("it-IT")}`,
-      `Totale indicativo${access === "difficile" ? " salvo sopralluogo" : ""}: € ${quote.total.toLocaleString("it-IT")}`,
+      hasStandardConcreteLine
+        ? `Tubazioni: ${ironTubes + rubberTubes} pezzi per un totale di € ${tubeCost.toLocaleString("it-IT")}`
+        : `Tubazioni specifiche malte/massetti: DA QUOTARE`,
+      `Totale indicativo${requiresSurvey ? " salvo sopralluogo" : ""}${requiresPriceReview ? " e conferma economica" : ""}: € ${quote.total.toLocaleString("it-IT")}`,
       ``,
-      `Riferimento: DL-2026-0826`,
+      `Riferimento: ${quoteReference}`,
     ].join("\n");
     const gmailCompose = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent("dennis.cumerlato@gmail.com")}&cc=${encodeURIComponent("riolfatti.thomas76@gmail.com")}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.open(gmailCompose, "_blank", "noopener,noreferrer");
@@ -672,7 +675,7 @@ export default function Home() {
                   <button
                     key={x[0]}
                     className={service === x[0] ? "selected" : ""}
-                    onClick={() => setService(x[0])}
+                    onClick={() => setService(x[0] as Service)}
                   >
                     <b>{x[1]}</b>
                     <small>
@@ -701,7 +704,7 @@ export default function Home() {
                   </button>
                 ))}
               </div>
-              <div className="boom-question">
+              {equipment !== "malte" && <div className="boom-question">
                 <div>
                   <b>Serve anche un braccio stazionario?</b>
                   <span>
@@ -723,7 +726,7 @@ export default function Home() {
                     Sì, serve
                   </button>
                 </div>
-              </div>
+              </div>}
             </div>
           )}
           {step === 1 && (
@@ -844,7 +847,7 @@ export default function Home() {
                       setDetailsIndex(null);
                     }}
                   >
-                    {aggregateOptions[equipment].map((size) => (
+                    {availableAggregateOptions.map((size) => (
                       <option key={size} value={`D${size}`}>
                         Dmax {size} mm
                       </option>
@@ -915,7 +918,7 @@ export default function Home() {
                   Tipo di intervento
                   <select
                     value={intervention}
-                    onChange={(e) => setIntervention(e.target.value)}
+                    onChange={(e) => chooseIntervention(e.target.value)}
                   >
                     {interventions[equipment].map((x) => (
                       <option key={x}>{x}</option>
@@ -924,15 +927,22 @@ export default function Home() {
                 </label>
                 <div className="line-calculation wide">
                   <b>Distinta linea stimata</b>
-                  <span>
-                    {lineMeters} m di sviluppo · {ironTubes} tubi ferro +{" "}
-                    {rubberTubes} tubo gomma da 3 m · {curveCount} curve ·{" "}
-                    {kitCount} kit di piano
-                  </span>
+                  {hasStandardConcreteLine ? (
+                    <span>
+                      {lineMeters} m di sviluppo · {ironTubes} tubi ferro +{" "}
+                      {rubberTubes} tubo gomma da 3 m · {curveCount} curve ·{" "}
+                      {kitCount} kit di piano
+                    </span>
+                  ) : (
+                    <span>
+                      {lineMeters} m di sviluppo · diametro e dotazione specifici
+                      da definire in base al materiale.
+                    </span>
+                  )}
                   <small>
-                    Canone tubazioni: €{" "}
-                    {tubeCost.toLocaleString("it-IT")} per il periodo
-                    selezionato.
+                    {hasStandardConcreteLine
+                      ? `Canone tubazioni: € ${tubeCost.toLocaleString("it-IT")} per il periodo selezionato.`
+                      : "Tubazioni specifiche non presenti nel listino: costo da quotare da Dalecom."}
                   </small>
                 </div>
                 {durationDays > 1 && (
@@ -981,6 +991,16 @@ export default function Home() {
                     {granulometry.replace("D", "Dmax ")} mm.
                   </span>
                 </div>
+                {!stepOneValid && (
+                  <div className="validation-warning wide" role="alert">
+                    <b>Correggi i dati prima di continuare</b>
+                    <span>
+                      Il volume totale deve essere almeno pari a un singolo getto,
+                      i getti settimanali non possono superare quelli totali e deve
+                      esistere almeno una macchina compatibile.
+                    </span>
+                  </div>
+                )}
                 <div className="route-card wide">
                   <span>PAESE (TV)</span>
                   <i>→ {place.km} km →</i>
@@ -1007,6 +1027,7 @@ export default function Home() {
                   Data di inizio
                   <input
                     type="date"
+                    min={todayISO}
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
                   />
@@ -1030,7 +1051,7 @@ export default function Home() {
                     )}
                   </select>
                   <small>
-                    Durata minima: {minimumWeeks} {minimumWeeks === 1 ? "settimana" : "settimane"} per distribuire {totalPours} getti.
+                    Durata minima: {totalPours === 1 ? "1 giornata" : `${minimumWeeks} ${minimumWeeks === 1 ? "settimana" : "settimane"}`} per distribuire {totalPours} getti.
                   </small>
                 </label>
                 <label>
@@ -1045,10 +1066,10 @@ export default function Home() {
                 </label>
                 <label>
                   Flessibilità data
-                  <select>
-                    <option>Data tassativa</option>
-                    <option>± 1 giorno</option>
-                    <option>± 3 giorni</option>
+                  <select value={flexibility} onChange={(e) => setFlexibility(e.target.value)}>
+                    <option value="tassativa">Data tassativa</option>
+                    <option value="1">± 1 giorno</option>
+                    <option value="3">± 3 giorni</option>
                   </select>
                 </label>
                 <div className="availability wide">
@@ -1061,6 +1082,14 @@ export default function Home() {
                     </span>
                   </div>
                 </div>
+                {!stepTwoValid && (
+                  <div className="validation-warning wide" role="alert">
+                    <b>Periodo non coerente</b>
+                    <span>
+                      Scegli una data non precedente a oggi e una durata di almeno {formatDurationLabel(minimumDurationDays)}.
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1160,7 +1189,7 @@ export default function Home() {
                 <div className="quote-title">
                   <div>
                     <small>PREVENTIVO INDICATIVO</small>
-                    <b>DL-2026-0826</b>
+                    <b>{quoteReference}</b>
                   </div>
                   <span>Validità 48 ore</span>
                 </div>
@@ -1211,10 +1240,17 @@ export default function Home() {
                     {volume} m³ per getto · {totalVolume} m³ totali · {totalPours} getti previsti · {poursPerWeek}/settimana
                   </span>
                   <small>
-                    {ironTubes} tubi ferro + {rubberTubes} tubo gomma da 3 m · {curveCount} curve · {kitCount} kit
+                    {hasStandardConcreteLine
+                      ? `${ironTubes} tubi ferro + ${rubberTubes} tubo gomma da 3 m · ${curveCount} curve · ${kitCount} kit`
+                      : `Tubazione specifica malte/massetti per ${lineMeters} m · costo da quotare`}
                     {needBoom === "si" ? ` · ${boomAssetName}` : ""}
                     {needCompressor === "si" ? " · compressore ATLAS XAVS186" : ""}
                   </small>
+                  {transmatHose && (
+                    <small className="crew-note">
+                      Transmat: tubazione {transmatHose} richiesta per Dmax {aggregateSize} mm.
+                    </small>
+                  )}
                   {durationDays > 1 && (
                     <small className="line-plan-summary">
                       Linea tra i getti: {leaveLineInstalled === "si" ? "lasciata predisposta" : "rimossa dopo ogni getto"} · area {lineAreaSafe === "si" ? "protetta" : "da verificare"} · pulizia {lineCleaning === "dalecom" ? "Dalecom" : "cliente"}
@@ -1222,6 +1258,21 @@ export default function Home() {
                   )}
                   {equipment === "city" && (
                     <small className="crew-note">City Pump su camion: autista sempre incluso nella squadra.</small>
+                  )}
+                  {requiresSurvey && (
+                    <small className="survey-warning">
+                      ⚠ Concordare sopralluogo: la configurazione richiede verifica tecnica in cantiere.
+                    </small>
+                  )}
+                  {shift === "notturno" && (
+                    <small className="survey-warning">
+                      ⚠ Il turno notturno/festivo non ha una maggiorazione definita nel listino: prezzo da confermare.
+                    </small>
+                  )}
+                  {!hasStandardConcreteLine && (
+                    <small className="survey-warning">
+                      ⚠ Il totale non include la tubazione specifica malte/massetti, assente dal listino disponibile.
+                    </small>
                   )}
                 </div>
                 <div className="cost-lines">
@@ -1246,17 +1297,13 @@ export default function Home() {
                     <span>Disallestimento e rientro · una tantum · {logistics.configuration}</span>
                     <b>€ {logistics.teardown.toLocaleString("it-IT")}</b>
                   </div>
-                  {quote.extras > 0 && (
-                    <div>
-                      <span>Maggiorazioni operative</span>
-                      <b>€ {quote.extras.toLocaleString("it-IT")}</b>
-                    </div>
-                  )}
                   <div>
                     <span>
-                      Tubazioni · {ironTubes + rubberTubes} pezzi · per un totale di
+                      {hasStandardConcreteLine
+                        ? `Tubazioni · ${ironTubes + rubberTubes} pezzi · per un totale di`
+                        : "Tubazioni specifiche malte/massetti"}
                     </span>
-                    <b>€ {quote.tubes.toLocaleString("it-IT")}</b>
+                    <b>{hasStandardConcreteLine ? `€ ${quote.tubes.toLocaleString("it-IT")}` : "Da quotare"}</b>
                   </div>
                   {quote.boom > 0 && (
                     <div>
@@ -1273,9 +1320,9 @@ export default function Home() {
                 </div>
                 <div className="total">
                   <span>
-                    Totale indicativo{access === "difficile" ? " salvo sopralluogo" : ""}
+                    Totale indicativo{!hasStandardConcreteLine ? " parziale" : ""}{requiresSurvey ? " salvo sopralluogo" : ""}
                     <small>
-                      IVA esclusa · {access === "difficile" ? "importo da confermare dopo il sopralluogo" : "conferma tecnica finale Dalecom"}
+                      IVA esclusa · {requiresPriceReview ? "importo da confermare da Dalecom" : "conferma tecnica finale Dalecom"}
                     </small>
                   </span>
                   <strong>€ {quote.total.toLocaleString("it-IT")}</strong>
@@ -1416,6 +1463,7 @@ export default function Home() {
               <button
                 className="primary"
                 onClick={() => setStep(Math.min(4, step + 1))}
+                disabled={!currentStepValid}
               >
                 {step === 2 ? "Verifica disponibilità" : "Continua"}{" "}
                 <span>→</span>
