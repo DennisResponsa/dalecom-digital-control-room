@@ -1,0 +1,222 @@
+{
+  "contract_name": "Dalecom Preventivo Immediato -> 1C",
+  "contract_version": "2.0.0",
+  "encoding": "UTF-8",
+  "endpoint_proposal": {
+    "method": "POST",
+    "path": "/api/v1/dalecom/quote-leads",
+    "content_type": "application/json",
+    "authentication": "Bearer token or API key to be agreed with 1C",
+    "timeout_seconds": 15,
+    "idempotency_header": "Idempotency-Key"
+  },
+  "request_example": {
+    "event_id": "evt_DL-20260826_001",
+    "event_type": "dalecom.quote.created",
+    "occurred_at": "2026-08-25T18:30:00+03:00",
+    "source": {
+      "application": "dalecom-preventivo-immediato",
+      "environment": "demo",
+      "public_url": "https://dalecom-preventivo-immediato.denniscumerlato.chatgpt.site/"
+    },
+    "crm_action": {
+      "create_lead": true,
+      "lead_status": "new",
+      "lead_source": "website_quote_configurator",
+      "assign_to": null,
+      "send_notification_to": [
+        "dennis.cumerlato@gmail.com",
+        "riolfatti.thomas76@gmail.com"
+      ]
+    },
+    "customer": {
+      "company_name": "Cliente Demo S.r.l.",
+      "vat_or_tax_code": "IT00000000000",
+      "contact_name": "Mario Rossi",
+      "email": "mario.rossi@example.com",
+      "phone": "+39 000 0000000",
+      "privacy_consent": true,
+      "privacy_consent_at": "2026-08-25T18:29:30+03:00"
+    },
+    "quote": {
+      "quote_reference": "DL-20260826",
+      "quote_status": "indicative",
+      "validity_hours": 48,
+      "currency": "EUR",
+      "vat_included": false,
+      "service": {
+        "code": "cold",
+        "label": "A freddo",
+        "personnel_included": false,
+        "washing_responsibility": "customer",
+        "washing_label": "Lavaggio sempre e solo a carico del cliente"
+      },
+      "job": {
+        "intervention": "Getto a lunga distanza",
+        "aggregate_max_mm": 16,
+        "volume_per_pour_m3": 80,
+        "total_volume_m3": 400,
+        "total_pours": 5,
+        "pours_per_week": 3,
+        "building_floors": 1,
+        "access_type": "standard",
+        "operating_shift": "day_weekday"
+      },
+      "site": {
+        "country": "IT",
+        "region": "Veneto",
+        "province": "Treviso",
+        "municipality": "Treviso",
+        "distance_from_paese_km": 12,
+        "transport_price_band": "up_to_50_km"
+      },
+      "schedule": {
+        "start_date": "2026-08-26",
+        "date_flexibility_days": 0,
+        "duration_working_days": 10,
+        "duration_label": "2 settimane",
+        "minimum_duration_working_days": 10
+      },
+      "main_equipment": {
+        "family_code": "trailer_or_crawler_pump",
+        "asset_name": "Putzmeister P715 TD",
+        "asset_site": "Paese",
+        "available_quantity": 1,
+        "availability_status": "available",
+        "aggregate_max_supported_mm": 16,
+        "rental_cost": 2700
+      },
+      "stationary_boom": {
+        "required": false,
+        "asset_name": null,
+        "reach_m": null,
+        "rental_cost": 0
+      },
+      "compressor": {
+        "required": false,
+        "asset_name": null,
+        "rental_cost": 0
+      },
+      "pipeline": {
+        "included": true,
+        "specific_pipeline_price_missing": false,
+        "horizontal_distance_m": 30,
+        "elevation_from_zero_m": 0,
+        "total_development_m": 30,
+        "piece_length_m": 3,
+        "iron_tubes_quantity": 9,
+        "rubber_tubes_quantity": 1,
+        "total_tubes_quantity": 10,
+        "curves_quantity": 2,
+        "floor_kits_quantity": 1,
+        "left_installed_between_pours": true,
+        "protected_area": true,
+        "washing_responsibility": "customer",
+        "rental_cost": 350
+      },
+      "personnel": {
+        "people_quantity": 0,
+        "working_days": 0,
+        "daily_cost": 0,
+        "total_cost": 0,
+        "composition": "Noleggio senza personale Dalecom"
+      },
+      "one_time_costs": {
+        "setup_included": false,
+        "setup_cost": 0,
+        "teardown_included": false,
+        "teardown_cost": 0
+      },
+      "costs": {
+        "equipment_rental": 2700,
+        "personnel": 0,
+        "pipeline": 350,
+        "stationary_boom": 0,
+        "compressor": 0,
+        "setup": 0,
+        "teardown": 0,
+        "total_indicative": 3050
+      },
+      "review": {
+        "survey_required": false,
+        "price_review_required": false,
+        "technical_confirmation_required": true,
+        "warnings": []
+      },
+      "documents": {
+        "personalized_quote_pdf_name": "DL-20260826-Cliente-Demo.pdf",
+        "personalized_quote_pdf_url": null,
+        "personalized_quote_pdf_base64": null
+      }
+    }
+  },
+  "expected_success_response": {
+    "success": true,
+    "received_event_id": "evt_DL-20260826_001",
+    "quote_reference": "DL-20260826",
+    "lead_id": "1C-LEAD-000001",
+    "lead_status": "new",
+    "duplicate": false,
+    "message": "Lead and quote created successfully",
+    "received_at": "2026-08-25T15:30:02Z"
+  },
+  "expected_error_response": {
+    "success": false,
+    "received_event_id": "evt_DL-20260826_001",
+    "error_code": "VALIDATION_ERROR",
+    "message": "Invalid or missing required fields",
+    "field_errors": [
+      {
+        "field": "request_example.customer.email",
+        "message": "Invalid email address"
+      }
+    ]
+  },
+  "fixed_business_rules": {
+    "cold": {
+      "allowed_equipment_families": [
+        "trailer_or_crawler_pump",
+        "mortar_or_plaster_pump"
+      ],
+      "stationary_boom_allowed": false,
+      "personnel_included": false,
+      "pipeline_calculated_from_customer_meters": true,
+      "washing_responsibility": "customer"
+    },
+    "semi_cold": {
+      "allowed_equipment_families": [
+        "truck_mounted_pump",
+        "city_pump",
+        "trailer_or_crawler_pump",
+        "mortar_or_plaster_pump"
+      ],
+      "stationary_boom_allowed": false,
+      "truck_mounted_pump": "driver only, no pipeline",
+      "city_pump": "driver and pump_operator are separate people",
+      "washing_responsibility": "dalecom"
+    },
+    "hot": {
+      "allowed_equipment_families": [
+        "truck_mounted_pump",
+        "city_pump",
+        "trailer_or_crawler_pump",
+        "mortar_or_plaster_pump"
+      ],
+      "stationary_boom_allowed_except_mortar_or_plaster": true,
+      "truck_mounted_pump_people": 1,
+      "other_equipment_base_people": 2,
+      "other_equipment_possible_people": 3,
+      "pump_plus_stationary_boom_minimum_people": 3,
+      "washing_responsibility": "dalecom"
+    }
+  },
+  "implementation_notes_for_1c": [
+    "Use event_id as the idempotency key: the same event must not create two leads.",
+    "Return HTTP 200 or 201 only after both lead and quote data have been saved.",
+    "Return HTTP 400 for validation errors, 401 or 403 for authentication errors, and 500 for unexpected errors.",
+    "All monetary values are numeric EUR amounts excluding VAT.",
+    "Zero is a valid explicit amount and must not be replaced by null or multiplied by duration.",
+    "The PDF fields are nullable in the demo; later one of URL or base64 can be supplied.",
+    "The request_example object is the payload that the configurator will POST; the other top-level sections document the contract."
+  ]
+}
