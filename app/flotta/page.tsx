@@ -15,6 +15,7 @@ type Vehicle = {
   fuelConsumed24hL: number | null;
   messages24h: number;
   positionedMessages24h: number;
+  position: { latitude: number; longitude: number } | null;
 };
 
 type FleetData = {
@@ -35,6 +36,15 @@ function value(input: number | null, suffix: string) {
 function localTime(input: string | null) {
   if (!input) return "dato non disponibile";
   return new Intl.DateTimeFormat("it-IT", { dateStyle: "short", timeStyle: "medium" }).format(new Date(input));
+}
+
+function mapUrl(position: { latitude: number; longitude: number }) {
+  const { latitude, longitude } = position;
+  const delta = 0.018;
+  const bbox = [longitude - delta, latitude - delta, longitude + delta, latitude + delta]
+    .map((coordinate) => coordinate.toFixed(5))
+    .join("%2C");
+  return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${latitude.toFixed(4)}%2C${longitude.toFixed(4)}`;
 }
 
 export default function FleetPage() {
@@ -75,7 +85,7 @@ export default function FleetPage() {
   return (
     <main className={styles.page}>
       <header className={styles.top}>
-        <img src="/dalecom-logo.png" alt="Dalecom" />
+        <div className={styles.brandMark} aria-label="Dalecom"><i /><strong>DALECOM</strong></div>
         <a href="/">Preventivo immediato →</a>
       </header>
 
@@ -122,11 +132,25 @@ export default function FleetPage() {
                       <div className={styles.metric}><small>Velocità attuale</small><strong>{value(vehicle.speedKmh, "km/h")}</strong></div>
                       <div className={styles.metric}><small>Velocità max 24 ore</small><strong>{value(vehicle.maxSpeed24hKmh, "km/h")}</strong></div>
                     </div>
+                    {vehicle.position ? (
+                      <div className={styles.mapPanel}>
+                        <div className={styles.mapTitle}>
+                          <div><small>POSIZIONE GPS</small><strong>Ultima posizione ricevuta</strong></div>
+                          <span>{vehicle.position.latitude.toFixed(4)}, {vehicle.position.longitude.toFixed(4)}</span>
+                        </div>
+                        <iframe
+                          title={`Posizione GPS ${vehicle.name}`}
+                          src={mapUrl(vehicle.position)}
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                    ) : null}
                     <div className={styles.foot}><span>Ultimo dato: {localTime(vehicle.lastMessageUtc)}</span><span>{number.format(vehicle.positionedMessages24h)} posizioni validate</span></div>
                   </article>
                 ))}
               </div>
-              <div className={styles.privacy}>{data.privacy}. Il chilometraggio utilizza il parametro CAN raccomandato e dovrà essere verificato una volta con il quadro del veicolo.</div>
+              <div className={styles.privacy}><b>DALECOM · GOVERNANCE OPERATIVA</b><span>{data.privacy}. Il chilometraggio utilizza il parametro CAN raccomandato e dovrà essere verificato una volta con il quadro del veicolo.</span></div>
             </>
           )}
         </div>

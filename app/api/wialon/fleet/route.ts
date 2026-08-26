@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 
 type WialonMessage = {
   t?: number;
-  pos?: { s?: number };
+  pos?: { s?: number; x?: number; y?: number };
   p?: Record<string, number | string | null | undefined>;
 };
 
@@ -20,6 +20,7 @@ type FleetVehicle = {
   fuelConsumed24hL: number | null;
   messages24h: number;
   positionedMessages24h: number;
+  position: { latitude: number; longitude: number } | null;
 };
 
 const apiDefault = "https://hst-api.wialon.com/wialon/ajax.html";
@@ -81,6 +82,9 @@ function summarize(unit: WialonUnit, messages: WialonMessage[], now: number): Fl
   const fuelLevels = valuesFor(messages, "can_fuel_level_p");
   const totalFuel = valuesFor(messages, "can_total_fuel_l");
   const speeds = messages.map((message) => numeric(message.pos?.s)).filter((v): v is number => v !== null);
+  const lastPosition = [...messages].reverse().find((message) => {
+    return numeric(message.pos?.x) !== null && numeric(message.pos?.y) !== null;
+  })?.pos;
   const lastTimestamp = last?.t || 0;
   const firstDistance = distances.at(0)?.value;
   const lastDistance = distances.at(-1)?.value;
@@ -103,6 +107,13 @@ function summarize(unit: WialonUnit, messages: WialonMessage[], now: number): Fl
       firstFuel === undefined || lastFuel === undefined ? null : round(Math.max(0, lastFuel - firstFuel), 1),
     messages24h: messages.length,
     positionedMessages24h: messages.filter((message) => message.pos).length,
+    position:
+      numeric(lastPosition?.x) === null || numeric(lastPosition?.y) === null
+        ? null
+        : {
+            latitude: round(numeric(lastPosition?.y), 4) as number,
+            longitude: round(numeric(lastPosition?.x), 4) as number,
+          },
   };
 }
 
@@ -158,7 +169,7 @@ export async function GET() {
       success: true,
       source: "Wialon Remote API · TOPFLY",
       generatedAt: new Date().toISOString(),
-      privacy: "Le coordinate precise non vengono pubblicate",
+      privacy: "Posizioni GPS mostrate con coordinate arrotondate per la demo",
       vehicles,
     };
     cached = { expires: Date.now() + cacheMs, payload };
