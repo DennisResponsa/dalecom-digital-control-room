@@ -19,6 +19,8 @@ const localBindingConfig = {
     ONEC_ODATA_URL: process.env.ONEC_ODATA_URL ?? '',
     ONEC_USERNAME: process.env.ONEC_USERNAME ?? '',
     ONEC_PASSWORD: process.env.ONEC_PASSWORD ?? '',
+    WIALON_API_URL: process.env.WIALON_API_URL ?? 'https://hst-api.wialon.com/wialon/ajax.html',
+    WIALON_TOKEN: process.env.WIALON_TOKEN ?? '',
   },
   d1_databases: d1
     ? [
