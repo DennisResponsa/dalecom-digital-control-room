@@ -22,11 +22,25 @@ export async function GET() {
     return json({ success: false, error: "Collegamento 1C non configurato" }, 503);
   }
 
-  const headers = { Authorization: `Basic ${btoa(`${username}:${password}`)}`, Accept: "application/json" };
+  const headers = {
+    Authorization: `Basic ${btoa(`${username}:${password}`)}`,
+    Accept: "application/json",
+    "Cache-Control": "no-cache, no-store, max-age=0",
+    Pragma: "no-cache",
+  };
 
-  async function rows<T>(entity: string, select: string, orderBy?: string, top = 500) {
-    const query = new URLSearchParams({ $select: select, $filter: "DeletionMark eq false", $top: String(top) });
-    if (orderBy) query.set("$orderby", orderBy);
+  async function rows<T>(entity: string, select: string, identityField: "Code" | "Number", orderBy?: string, top = 500) {
+    // Il proxy davanti a 1C conserva alcune risposte OData anche quando il client
+    // richiede no-store. Un confronto sempre vero con un valore impossibile rende
+    // univoca la URL senza cambiare i record restituiti.
+    const cacheKey = `DALECOM-CACHE-${Date.now()}-${crypto.randomUUID()}`;
+    const filter = `DeletionMark eq false and ${identityField} ne '${cacheKey}'`;
+    const query = [
+      `$select=${encodeURIComponent(select).replaceAll("%2C", ",")}`,
+      `$filter=${encodeURIComponent(filter)}`,
+      `$top=${top}`,
+      ...(orderBy ? [`$orderby=${encodeURIComponent(orderBy)}`] : []),
+    ].join("&");
     let lastStatus = 0;
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const response = await fetch(`${baseUrl}/${entity}?${query}`, {
@@ -47,10 +61,10 @@ export async function GET() {
 
   try {
     const [leads, orders, employees, timesheets] = await Promise.all([
-      rows<LeadRow>("Catalog_Leads", "Code,Created,Potential,DeletionMark", "Created desc"),
-      rows<OrderRow>("Document_SalesOrder", "Number,Date,DocumentAmount,Posted,DeletionMark", "Date desc"),
-      rows<{ Ref_Key?: string; IsFolder?: boolean; DeletionMark?: boolean }>("Catalog_Employees", "Ref_Key,IsFolder,DeletionMark"),
-      rows<TimesheetRow>("Document_Timesheet", "Number,Date,Posted,DeletionMark", "Date desc"),
+      rows<LeadRow>("Catalog_Leads", "Code,Created,Potential,DeletionMark", "Code", "Created desc"),
+      rows<OrderRow>("Document_SalesOrder", "Number,Date,DocumentAmount,Posted,DeletionMark", "Number", "Date desc"),
+      rows<{ Ref_Key?: string; IsFolder?: boolean; DeletionMark?: boolean }>("Catalog_Employees", "Ref_Key,IsFolder,DeletionMark", "Code"),
+      rows<TimesheetRow>("Document_Timesheet", "Number,Date,Posted,DeletionMark", "Number", "Date desc"),
     ]);
     const activeEmployees = employees.filter((employee) => employee.IsFolder !== true);
 
