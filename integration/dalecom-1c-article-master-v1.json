@@ -1,0 +1,368 @@
+{
+  "document": "Dalecom - anagrafica articoli del preventivatore per configurazione 1C",
+  "version": "1.0.0",
+  "generated_on": "2026-08-27",
+  "currency": "EUR",
+  "prices_are_vat_excluded": true,
+  "source": {
+    "price_list": "Listino_noleggio_Dalecom_con_costi_manutenzione_completi_rev_6.numbers",
+    "application": "Dalecom Preventivo immediato",
+    "note": "I codici DA-* sono codici di integrazione proposti e possono essere sostituiti dai codici definitivi di 1C mantenendo stabile il campo external_id."
+  },
+  "rate_model": {
+    "working_days_per_week": 5,
+    "working_days_per_month": 20,
+    "monthly_rate_meaning": "Canone mensile unitario applicabile a ciascun mese in funzione della durata complessiva del contratto, da 1 a 12 mesi.",
+    "calculation_rule": "Il configuratore confronta tariffa giornaliera, settimanale e mensile e applica automaticamente la combinazione più conveniente per la durata richiesta."
+  },
+  "articles": [
+    {
+      "external_id": "DA-MEZ-AUTO-M20-GJ584JY",
+      "description": "Noleggio Putzmeister M20 - targa GJ584JY",
+      "article_type": "service",
+      "category": "noleggio_autopompa_carrata",
+      "brand": "Putzmeister",
+      "model": "M20",
+      "registration": "GJ584JY",
+      "base_site": "Paese",
+      "available_quantity": 2,
+      "max_aggregate_mm": 32,
+      "unit_of_measure": "periodo",
+      "rates": {
+        "day": 820,
+        "week": 2960,
+        "monthly_by_contract_duration_1_to_12": [9020, 8520, 8830, 7990, 6910, 6170, 5690, 5360, 5290, 5210, 5090, 4990]
+      }
+    },
+    {
+      "external_id": "DA-MEZ-AUTO-MAN-GY967NP",
+      "description": "Noleggio MAN TGA 26.4 - targa GY967NP",
+      "article_type": "service",
+      "category": "noleggio_autopompa_carrata",
+      "brand": "MAN",
+      "model": "TGA 26.4",
+      "registration": "GY967NP",
+      "base_site": "Bareggio",
+      "available_quantity": 1,
+      "max_aggregate_mm": 32,
+      "unit_of_measure": "periodo",
+      "rates": {
+        "day": 820,
+        "week": 2960,
+        "monthly_by_contract_duration_1_to_12": [9020, 8520, 8830, 7990, 6910, 6170, 5690, 5360, 5290, 5210, 5090, 4990]
+      }
+    },
+    {
+      "external_id": "DA-MEZ-CITY-MECBO-HA095NA",
+      "description": "Noleggio Mecbo City Pump - targa HA095NA",
+      "article_type": "service",
+      "category": "noleggio_city_pump",
+      "brand": "Mecbo",
+      "model": "City Pump",
+      "registration": "HA095NA",
+      "base_site": "Paese",
+      "available_quantity": 1,
+      "max_aggregate_mm": 32,
+      "unit_of_measure": "periodo",
+      "rates": {
+        "day": 1370,
+        "week": 4890,
+        "monthly_by_contract_duration_1_to_12": [14570, 13720, 14250, 12800, 10930, 9660, 8830, 8250, 8140, 8000, 7800, 7620]
+      }
+    },
+    {
+      "external_id": "DA-MEZ-CITY-SCANIA-GY915DK",
+      "description": "Noleggio Scania City Pump - targa GY915DK",
+      "article_type": "service",
+      "category": "noleggio_city_pump",
+      "brand": "Scania",
+      "model": "City Pump",
+      "registration": "GY915DK",
+      "base_site": "Bareggio",
+      "available_quantity": 1,
+      "max_aggregate_mm": 32,
+      "unit_of_measure": "periodo",
+      "rates": {
+        "day": 380,
+        "week": 1420,
+        "monthly_by_contract_duration_1_to_12": [4590, 4390, 4510, 4170, 3720, 3420, 3220, 3080, 3050, 3020, 2970, 2930]
+      }
+    },
+    {
+      "external_id": "DA-MEZ-CARR-P715TD",
+      "description": "Noleggio Putzmeister P715 TD",
+      "article_type": "service",
+      "category": "noleggio_pompa_carrellata",
+      "brand": "Putzmeister",
+      "model": "P715 TD",
+      "base_site": "Paese",
+      "available_quantity": 1,
+      "max_aggregate_mm": 16,
+      "unit_of_measure": "periodo",
+      "rates": {
+        "day": 370,
+        "week": 1350,
+        "monthly_by_contract_duration_1_to_12": [4110, 3880, 4020, 3630, 3140, 2800, 2580, 2420, 2390, 2360, 2300, 2260]
+      }
+    },
+    {
+      "external_id": "DA-MEZ-CING-TB30",
+      "description": "Noleggio Turbosol TB30 Cingolata",
+      "article_type": "service",
+      "category": "noleggio_pompa_cingolata",
+      "brand": "Turbosol",
+      "model": "TB30",
+      "base_site": "Bareggio",
+      "available_quantity": 3,
+      "max_aggregate_mm": 35,
+      "unit_of_measure": "periodo",
+      "rates": {
+        "day": 460,
+        "week": 1650,
+        "monthly_by_contract_duration_1_to_12": [4980, 4700, 4880, 4400, 3790, 3370, 3090, 2900, 2870, 2820, 2750, 2700]
+      }
+    },
+    {
+      "external_id": "DA-MEZ-MALTE-SP11LMR",
+      "description": "Noleggio Putzmeister SP 11 LMR",
+      "article_type": "service",
+      "category": "noleggio_pompa_malte_intonaci",
+      "brand": "Putzmeister",
+      "model": "SP 11 LMR",
+      "base_site": "Paese",
+      "available_quantity": 1,
+      "max_aggregate_mm": 6,
+      "unit_of_measure": "periodo",
+      "rates": {
+        "day": 90,
+        "week": 320,
+        "monthly_by_contract_duration_1_to_12": [1030, 980, 1010, 930, 820, 750, 700, 670, 660, 650, 640, 630]
+      }
+    },
+    {
+      "external_id": "DA-MEZ-MASSETTI-TRANSMAT250",
+      "description": "Noleggio Turbosol Transmat 250",
+      "article_type": "service",
+      "category": "noleggio_pompa_massetti",
+      "brand": "Turbosol",
+      "model": "Transmat 250",
+      "base_site": "Bareggio",
+      "available_quantity": 1,
+      "max_aggregate_mm": 30,
+      "unit_of_measure": "periodo",
+      "rates": {
+        "day": 130,
+        "week": 470,
+        "monthly_by_contract_duration_1_to_12": [1460, 1380, 1430, 1300, 1130, 1020, 940, 890, 880, 870, 850, 840]
+      }
+    },
+    {
+      "external_id": "DA-ACC-BRACCIO-MX28",
+      "description": "Noleggio braccio stazionario Putzmeister MX28 - 28 m",
+      "article_type": "service",
+      "category": "noleggio_braccio_stazionario",
+      "brand": "Putzmeister",
+      "model": "MX28",
+      "reach_m": 28,
+      "base_site": "Paese",
+      "available_quantity": 1,
+      "unit_of_measure": "periodo",
+      "rates": {
+        "day": 720,
+        "week": 2540,
+        "monthly_by_contract_duration_1_to_12": [7440, 6980, 7270, 6480, 5470, 4780, 4330, 4020, 3960, 3890, 3770, 3680]
+      }
+    },
+    {
+      "external_id": "DA-ACC-BRACCIO-MX36-4",
+      "description": "Noleggio braccio stazionario Putzmeister MX36-4 - 36 m",
+      "article_type": "service",
+      "category": "noleggio_braccio_stazionario",
+      "brand": "Putzmeister",
+      "model": "MX36-4",
+      "reach_m": 36,
+      "base_site": "Bareggio",
+      "available_quantity": 1,
+      "unit_of_measure": "periodo",
+      "rates": {
+        "day": 690,
+        "week": 2440,
+        "monthly_by_contract_duration_1_to_12": [7150, 6700, 6980, 6230, 5260, 4600, 4170, 3870, 3810, 3740, 3630, 3540]
+      }
+    },
+    {
+      "external_id": "DA-ACC-COMP-XAVS186",
+      "description": "Noleggio compressore Atlas Copco XAVS186",
+      "article_type": "service",
+      "category": "noleggio_compressore",
+      "brand": "Atlas Copco",
+      "model": "XAVS186",
+      "unit_of_measure": "periodo",
+      "rates": {
+        "day": 330,
+        "week": 1170,
+        "monthly_by_contract_duration_1_to_12": [3430, 3220, 3350, 2990, 2530, 2210, 2010, 1870, 1840, 1800, 1750, 1710]
+      },
+      "data_quality_note": "Il preventivatore usa XAVS186 per prezzo e descrizione; nella scheda dimostrativa della flotta compare anche XAS 58. Verificare con Dalecom se in 1C debbano esistere entrambi come cespiti distinti."
+    },
+    {
+      "external_id": "DA-ACC-TUBO-FERRO-3M",
+      "description": "Noleggio tubo ferro per linea pompaggio - elemento da 3 m",
+      "article_type": "service",
+      "category": "noleggio_tubazioni",
+      "unit_of_measure": "pezzo_periodo",
+      "length_m": 3,
+      "rates": {
+        "day": 10,
+        "week": 20,
+        "monthly_by_contract_duration_1_to_12": [30, 30, 30, 30, 20, 20, 20, 20, 20, 20, 20, 20]
+      }
+    },
+    {
+      "external_id": "DA-ACC-TUBO-GOMMA-3M",
+      "description": "Noleggio tubo gomma per linea pompaggio - elemento da 3 m",
+      "article_type": "service",
+      "category": "noleggio_tubazioni",
+      "unit_of_measure": "pezzo_periodo",
+      "length_m": 3,
+      "rates": {
+        "day": 10,
+        "week": 40,
+        "monthly_by_contract_duration_1_to_12": [80, 70, 80, 70, 60, 60, 50, 50, 50, 50, 50, 50]
+      }
+    }
+  ],
+  "service_articles": [
+    {
+      "external_id": "DA-SRV-PERS-486",
+      "description": "Personale operativo - tariffa giornaliera 486 euro",
+      "unit_of_measure": "persona_giorno",
+      "unit_price": 486
+    },
+    {
+      "external_id": "DA-SRV-PERS-630",
+      "description": "Personale operativo specializzato - tariffa giornaliera 630 euro",
+      "unit_of_measure": "persona_giorno",
+      "unit_price": 630
+    },
+    {
+      "external_id": "DA-SRV-SQUADRA-1116",
+      "description": "Squadra operativa City Pump/pompaggio - tariffa giornaliera",
+      "unit_of_measure": "squadra_giorno",
+      "unit_price": 1116
+    },
+    {
+      "external_id": "DA-SRV-ALLESTIMENTO",
+      "description": "Allestimento cantiere una tantum",
+      "unit_of_measure": "servizio",
+      "price_source": "transport_bands.setup"
+    },
+    {
+      "external_id": "DA-SRV-DISALLESTIMENTO",
+      "description": "Disallestimento e rientro una tantum",
+      "unit_of_measure": "servizio",
+      "price_source": "transport_bands.teardown"
+    }
+  ],
+  "transport_bands": [
+    {
+      "external_id": "DA-TR-0-50",
+      "label": "Fino a 50 km",
+      "min_km_exclusive": null,
+      "max_km_inclusive": 50,
+      "pump_line_setup": 1300,
+      "pump_line_teardown": 1716,
+      "pump_boom_setup": 2600,
+      "pump_boom_teardown": 2600
+    },
+    {
+      "external_id": "DA-TR-50-150",
+      "label": "Da 50 a 150 km",
+      "min_km_exclusive": 50,
+      "max_km_inclusive": 150,
+      "pump_line_setup": 1716,
+      "pump_line_teardown": 1976,
+      "pump_boom_setup": 3640,
+      "pump_boom_teardown": 3640
+    },
+    {
+      "external_id": "DA-TR-150-300",
+      "label": "Da 150 a 300 km",
+      "min_km_exclusive": 150,
+      "max_km_inclusive": 300,
+      "pump_line_setup": 1976,
+      "pump_line_teardown": 2392,
+      "pump_boom_setup": 4680,
+      "pump_boom_teardown": 4680
+    },
+    {
+      "external_id": "DA-TR-300-500",
+      "label": "Da 300 a 500 km",
+      "min_km_exclusive": 300,
+      "max_km_inclusive": 500,
+      "pump_line_setup": 2392,
+      "pump_line_teardown": 2704,
+      "pump_boom_setup": 5720,
+      "pump_boom_teardown": 5720
+    },
+    {
+      "external_id": "DA-TR-500-650",
+      "label": "Da 500 a 650 km",
+      "min_km_exclusive": 500,
+      "max_km_inclusive": 650,
+      "pump_line_setup": 2704,
+      "pump_line_teardown": 1300,
+      "pump_boom_setup": 6760,
+      "pump_boom_teardown": 6760,
+      "data_quality_note": "Il valore 1300 per il disallestimento pompa+linea è quello attualmente usato dal configuratore, ma appare anomalo rispetto alle fasce precedenti: verificare prima del caricamento definitivo in 1C."
+    },
+    {
+      "external_id": "DA-TR-OVER-650",
+      "label": "Oltre 650 km / isole",
+      "min_km_exclusive": 650,
+      "max_km_inclusive": null,
+      "pump_line_setup": 1300,
+      "pump_line_teardown": 1716,
+      "pump_boom_setup": 9100,
+      "pump_boom_teardown": 9100,
+      "data_quality_note": "I valori pompa+linea ripartono dalla prima fascia nel configuratore e richiedono conferma commerciale prima del caricamento definitivo in 1C."
+    }
+  ],
+  "configuration_rules": {
+    "cold_rental": {
+      "allowed_categories": ["noleggio_pompa_carrellata", "noleggio_pompa_cingolata", "noleggio_pompa_malte_intonaci", "noleggio_pompa_massetti"],
+      "stationary_boom_allowed": false,
+      "personnel_included": false,
+      "pipeline_for_trailer_tracked_and_mortar_pumps": true,
+      "pipeline_cleaning_by": "customer"
+    },
+    "semi_cold_rental": {
+      "stationary_boom_allowed": false,
+      "autopump": "solo autista, tubazioni escluse",
+      "city_pump": "autista e pompista distinti",
+      "pipeline_cleaning_by": "dalecom"
+    },
+    "hot_rental": {
+      "all_machine_categories_allowed": true,
+      "stationary_boom_not_allowed_with_mortar_or_screed_pumps": true,
+      "pump_plus_boom_minimum_people": 3,
+      "pipeline_cleaning_by": "dalecom"
+    }
+  },
+  "import_requirements_for_1c": {
+    "unique_key": "external_id",
+    "do_not_merge_different_registrations": true,
+    "preserve_rate_tiers": true,
+    "recommended_catalog_groups": [
+      "Noleggi/Autopompe carrate",
+      "Noleggi/City Pump",
+      "Noleggi/Pompe carrellate e cingolate",
+      "Noleggi/Pompe malte e massetti",
+      "Noleggi/Bracci stazionari",
+      "Noleggi/Compressori",
+      "Noleggi/Tubazioni",
+      "Servizi/Personale",
+      "Servizi/Logistica cantiere"
+    ]
+  }
+}

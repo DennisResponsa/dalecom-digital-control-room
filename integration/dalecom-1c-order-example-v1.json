@@ -1,0 +1,103 @@
+{
+  "external_id": "DL-20260827",
+  "document_type": "customer_quote",
+  "document_date": "2026-08-27",
+  "status": "indicative",
+  "validity_hours": 48,
+  "currency": "EUR",
+  "prices_include_vat": false,
+  "source": "dalecom-preventivo-immediato",
+  "customer": {
+    "company_name": "Cliente Demo S.r.l.",
+    "vat_or_tax_code": "IT00000000000",
+    "contact_name": "Mario Rossi",
+    "email": "mario.rossi@example.com",
+    "phone": "+39 000 0000000"
+  },
+  "delivery_site": {
+    "country": "IT",
+    "region": "Veneto",
+    "province": "Treviso",
+    "municipality": "Treviso",
+    "distance_from_paese_km": 12
+  },
+  "rental": {
+    "service_code": "cold",
+    "service_description": "Noleggio a freddo",
+    "start_date": "2026-09-01",
+    "duration_working_days": 10,
+    "duration_description": "2 settimane",
+    "washing_responsibility": "customer"
+  },
+  "lines": [
+    {
+      "line_number": 10,
+      "article_external_id": "DA-MEZ-CARR-P715TD",
+      "description": "Noleggio Putzmeister P715 TD - 2 settimane",
+      "quantity": 1,
+      "unit_of_measure": "periodo",
+      "unit_price": 2700,
+      "discount_percent": 0,
+      "line_amount": 2700,
+      "details": {
+        "asset_name": "Putzmeister P715 TD",
+        "aggregate_max_mm": 16,
+        "intervention": "Getto a lunga distanza"
+      }
+    },
+    {
+      "line_number": 20,
+      "article_external_id": "DA-ACC-TUBO-FERRO-3M",
+      "description": "Noleggio tubi ferro da 3 m - 2 settimane",
+      "quantity": 9,
+      "unit_of_measure": "pezzo_periodo",
+      "unit_price": 30,
+      "discount_percent": 0,
+      "line_amount": 270
+    },
+    {
+      "line_number": 30,
+      "article_external_id": "DA-ACC-TUBO-GOMMA-3M",
+      "description": "Noleggio tubo gomma da 3 m - 2 settimane",
+      "quantity": 1,
+      "unit_of_measure": "pezzo_periodo",
+      "unit_price": 80,
+      "discount_percent": 0,
+      "line_amount": 80
+    }
+  ],
+  "technical_configuration": {
+    "aggregate_max_mm": 16,
+    "volume_per_pour_m3": 80,
+    "total_volume_m3": 400,
+    "total_pours": 5,
+    "pours_per_week": 3,
+    "horizontal_distance_m": 30,
+    "elevation_from_zero_m": 0,
+    "total_pipeline_development_m": 30,
+    "curves_quantity": 2,
+    "floor_kits_quantity": 1,
+    "building_floors": 1,
+    "pipeline_left_installed_between_pours": true,
+    "protected_pipeline_area": true,
+    "personnel_quantity": 0,
+    "compressor_required": false,
+    "stationary_boom_required": false
+  },
+  "totals": {
+    "net_amount": 3050,
+    "vat_amount": null,
+    "gross_amount": null,
+    "indicative_total": 3050
+  },
+  "crm": {
+    "create_lead": true,
+    "link_quote_to_lead": true,
+    "lead_source": "website_quote_configurator"
+  },
+  "notes": [
+    "Preventivo indicativo IVA esclusa.",
+    "Conferma tecnica finale Dalecom obbligatoria.",
+    "Lavaggio tubazioni a carico del cliente."
+  ]
+}

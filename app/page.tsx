@@ -8,16 +8,19 @@ import {
   durationLabel as formatDurationLabel,
   equipmentAllowed,
   logisticsFor,
+  ironTubeRates,
   lineCleaningFor,
   personnelFor,
   quoteTotal,
   recommendedDurationDays,
   rentalForDuration,
   rentalForRates,
+  rubberTubeRates,
   tubingFor,
   tubesIncluded,
 } from "./quote-logic";
 import type { Equipment, Service } from "./quote-logic";
+import { buildOneCQuoteLines, ONE_C_SCHEMA_VERSION } from "./one-c-contract";
 
 type Place = { name: string; km: number };
 type Asset = {
@@ -649,13 +652,47 @@ export default function Home() {
           : equipment === "carrellata"
             ? "trailer_or_crawler_pump"
             : "mortar_or_plaster_pump";
+    const ironTubeUnitAmount = lineIsIncluded && hasStandardConcreteLine
+      ? rentalForRates(ironTubeRates, durationDays)
+      : 0;
+    const rubberTubeUnitAmount = lineIsIncluded && hasStandardConcreteLine
+      ? rentalForRates(rubberTubeRates, durationDays)
+      : 0;
+    const quoteLines = buildOneCQuoteLines({
+      assetName: selectedAsset.name,
+      equipmentAmount: quote.rental,
+      personnelPeople: crewPeople,
+      personnelDays: crewPeople > 0 ? crewDays : 0,
+      personnelDailyAmount: crewDailyCost,
+      personnelAmount: quote.crew,
+      ironTubes: lineIsIncluded && hasStandardConcreteLine ? ironTubes : 0,
+      ironTubeUnitAmount,
+      rubberTubes: lineIsIncluded && hasStandardConcreteLine ? rubberTubes : 0,
+      rubberTubeUnitAmount,
+      boomName: needBoom === "si" ? boomAssetName : null,
+      boomAmount: quote.boom,
+      compressorName: needCompressor === "si" ? "ATLAS XAVS186" : null,
+      compressorAmount: quote.compressor,
+      transportBand: logistics.band,
+      setupAmount: lineSetupIsIncluded ? logistics.setup : 0,
+      teardownAmount: lineSetupIsIncluded ? logistics.teardown : 0,
+    });
     const payload = {
+      schema_version: ONE_C_SCHEMA_VERSION,
+      payload_type: "dalecom.quote",
       event_id: crypto.randomUUID(),
       event_type: "dalecom.quote.created",
       occurred_at: new Date().toISOString(),
       source: {
         application: "dalecom-preventivo-immediato",
+        environment: "production",
         public_url: "https://dalecom-preventivo-immediato.denniscumerlato.chatgpt.site/",
+      },
+      crm_action: {
+        create_lead: true,
+        create_native_quote: true,
+        link_quote_to_lead: true,
+        lead_source: "website_quote_configurator",
       },
       customer: {
         company_name: client.company.trim(),
@@ -664,9 +701,14 @@ export default function Home() {
         email: client.email.trim(),
         phone: client.phone.trim(),
         privacy_consent: client.privacy,
+        privacy_consent_at: new Date().toISOString(),
       },
       quote: {
         quote_reference: quoteReference,
+        quote_status: "indicative",
+        validity_hours: 48,
+        currency: "EUR",
+        vat_included: false,
         service: {
           code: serviceCode,
           label: service === "freddo" ? "A freddo" : service === "semifreddo" ? "Semifreddo" : "A caldo",
@@ -741,6 +783,7 @@ export default function Home() {
           total_cost: quote.crew,
           composition: serviceSummary,
         },
+        lines: quoteLines,
         costs: {
           equipment_rental: quote.rental,
           personnel: quote.crew,

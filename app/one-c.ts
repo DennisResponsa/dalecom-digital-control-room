@@ -1,10 +1,25 @@
+import {
+  ONE_C_SCHEMA_VERSION,
+  oneCLinesNetTotal,
+  type OneCQuoteLine,
+} from "./one-c-contract.ts";
+
 export type OneCLeadRequest = {
+  schema_version: typeof ONE_C_SCHEMA_VERSION;
+  payload_type: "dalecom.quote";
   event_id: string;
   event_type: "dalecom.quote.created";
   occurred_at: string;
   source: {
     application: string;
+    environment: string;
     public_url: string;
+  };
+  crm_action: {
+    create_lead: boolean;
+    create_native_quote: boolean;
+    link_quote_to_lead: boolean;
+    lead_source: string;
   };
   customer: {
     company_name: string;
@@ -13,9 +28,14 @@ export type OneCLeadRequest = {
     email: string;
     phone: string;
     privacy_consent: boolean;
+    privacy_consent_at: string;
   };
   quote: {
     quote_reference: string;
+    quote_status: "indicative";
+    validity_hours: number;
+    currency: "EUR";
+    vat_included: false;
     service: { code: string; label: string; washing_responsibility: string };
     job: Record<string, unknown>;
     site: Record<string, unknown>;
@@ -25,6 +45,7 @@ export type OneCLeadRequest = {
     compressor: Record<string, unknown>;
     pipeline: Record<string, unknown>;
     personnel: Record<string, unknown>;
+    lines: OneCQuoteLine[];
     costs: {
       equipment_rental: number;
       personnel: number;
@@ -51,6 +72,9 @@ export function validateOneCLeadRequest(value: unknown):
   if (!data.event_id || data.event_type !== "dalecom.quote.created") {
     return { valid: false, error: "Evento non valido" };
   }
+  if (data.schema_version !== ONE_C_SCHEMA_VERSION || data.payload_type !== "dalecom.quote") {
+    return { valid: false, error: "Versione schema JSON non supportata" };
+  }
   const customer = data.customer;
   if (
     !customer ||
@@ -72,6 +96,34 @@ export function validateOneCLeadRequest(value: unknown):
     quote.costs.total_indicative < 0
   ) {
     return { valid: false, error: "Dati preventivo mancanti o non validi" };
+  }
+  const expectedLineTypes = [
+    "equipment_rental",
+    "personnel",
+    "iron_pipeline",
+    "rubber_pipeline",
+    "stationary_boom",
+    "compressor",
+    "setup",
+    "teardown",
+  ];
+  if (
+    !Array.isArray(quote.lines) ||
+    quote.lines.length !== expectedLineTypes.length ||
+    quote.lines.some((item, index) =>
+      item.line_number !== (index + 1) * 10 ||
+      item.line_type !== expectedLineTypes[index] ||
+      !Number.isFinite(item.quantity) ||
+      !Number.isFinite(item.unit_price) ||
+      !Number.isFinite(item.net_amount) ||
+      item.quantity < 0 ||
+      item.unit_price < 0 ||
+      item.net_amount < 0 ||
+      (!item.included && (item.quantity !== 0 || item.unit_price !== 0 || item.net_amount !== 0)),
+    ) ||
+    Math.abs(oneCLinesNetTotal(quote.lines) - quote.costs.total_indicative) > 0.01
+  ) {
+    return { valid: false, error: "Righe preventivo non conformi allo schema standard" };
   }
   if (
     customer.company_name.length > 200 ||

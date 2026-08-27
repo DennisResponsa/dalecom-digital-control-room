@@ -1,0 +1,254 @@
+{
+  "schema_version": "1.0.0",
+  "payload_type": "dalecom.quote",
+  "event_id": "evt_DL-20260827_001",
+  "event_type": "dalecom.quote.created",
+  "occurred_at": "2026-08-27T10:00:00.000Z",
+  "source": {
+    "application": "dalecom-preventivo-immediato",
+    "environment": "production",
+    "public_url": "https://dalecom-preventivo-immediato.denniscumerlato.chatgpt.site/"
+  },
+  "crm_action": {
+    "create_lead": true,
+    "create_native_quote": true,
+    "link_quote_to_lead": true,
+    "lead_source": "website_quote_configurator"
+  },
+  "customer": {
+    "company_name": "Cliente Demo S.r.l.",
+    "vat_or_tax_code": "IT00000000000",
+    "contact_name": "Mario Rossi",
+    "email": "mario.rossi@example.com",
+    "phone": "+39 000 0000000",
+    "privacy_consent": true,
+    "privacy_consent_at": "2026-08-27T09:59:30.000Z"
+  },
+  "quote": {
+    "quote_reference": "DL-20260827",
+    "quote_status": "indicative",
+    "validity_hours": 48,
+    "currency": "EUR",
+    "vat_included": false,
+    "service": {
+      "code": "cold",
+      "label": "A freddo",
+      "washing_responsibility": "customer"
+    },
+    "job": {
+      "intervention": "Getto a lunga distanza",
+      "aggregate_max_mm": 16,
+      "volume_per_pour_m3": 80,
+      "total_volume_m3": 400,
+      "total_pours": 5,
+      "pours_per_week": 3,
+      "building_floors": 1,
+      "access_type": "standard",
+      "operating_shift": "day_weekday"
+    },
+    "site": {
+      "country": "IT",
+      "region": "Veneto",
+      "province": "Treviso",
+      "municipality": "Treviso",
+      "distance_from_paese_km": 12,
+      "transport_price_band": "Fino a 50 km"
+    },
+    "schedule": {
+      "start_date": "2026-09-01",
+      "date_flexibility_days": 0,
+      "duration_working_days": 10,
+      "duration_label": "2 settimane",
+      "minimum_duration_working_days": 10
+    },
+    "main_equipment": {
+      "family_code": "trailer_or_crawler_pump",
+      "asset_name": "Putzmeister P715 TD",
+      "asset_site": "Paese",
+      "available_quantity": 1,
+      "availability_status": "available",
+      "aggregate_max_supported_mm": 16,
+      "rental_cost": 2700
+    },
+    "stationary_boom": {
+      "required": false,
+      "asset_name": null,
+      "reach_m": null,
+      "rental_cost": 0
+    },
+    "compressor": {
+      "required": false,
+      "asset_name": null,
+      "rental_cost": 0
+    },
+    "pipeline": {
+      "included": true,
+      "specific_pipeline_price_missing": false,
+      "horizontal_distance_m": 30,
+      "elevation_from_zero_m": 0,
+      "total_development_m": 30,
+      "iron_tubes_quantity": 9,
+      "rubber_tubes_quantity": 1,
+      "total_tubes_quantity": 10,
+      "curves_quantity": 2,
+      "floor_kits_quantity": 1,
+      "left_installed_between_pours": true,
+      "protected_area": true,
+      "washing_responsibility": "customer",
+      "rental_cost": 350
+    },
+    "personnel": {
+      "people_quantity": 0,
+      "working_days": 0,
+      "daily_cost": 0,
+      "total_cost": 0,
+      "composition": "Noleggio senza personale Dalecom"
+    },
+    "lines": [
+      {
+        "line_number": 10,
+        "line_type": "equipment_rental",
+        "included": true,
+        "article_external_id": "DA-MEZ-CARR-P715TD",
+        "article_1c_code": "00-00000228",
+        "description": "Noleggio Putzmeister P715 TD",
+        "quantity": 1,
+        "unit_of_measure": "period",
+        "unit_price": 2700,
+        "discount_percent": 0,
+        "net_amount": 2700,
+        "vat_rate_percent": null,
+        "vat_amount": null,
+        "gross_amount": null
+      },
+      {
+        "line_number": 20,
+        "line_type": "personnel",
+        "included": false,
+        "article_external_id": "DA-SRV-MANODOPERA",
+        "article_1c_code": "00-00000186",
+        "description": "Personale operativo - non previsto",
+        "quantity": 0,
+        "unit_of_measure": "day",
+        "unit_price": 0,
+        "discount_percent": 0,
+        "net_amount": 0,
+        "vat_rate_percent": null,
+        "vat_amount": null,
+        "gross_amount": null
+      },
+      {
+        "line_number": 30,
+        "line_type": "iron_pipeline",
+        "included": true,
+        "article_external_id": "DA-ACC-TUBO-FERRO-3M",
+        "article_1c_code": "00-00000189",
+        "description": "Noleggio tubazione in ferro da 3 m",
+        "quantity": 9,
+        "unit_of_measure": "piece_period",
+        "unit_price": 30,
+        "discount_percent": 0,
+        "net_amount": 270,
+        "vat_rate_percent": null,
+        "vat_amount": null,
+        "gross_amount": null
+      },
+      {
+        "line_number": 40,
+        "line_type": "rubber_pipeline",
+        "included": true,
+        "article_external_id": "DA-ACC-TUBO-GOMMA-3M",
+        "article_1c_code": "00-00000190",
+        "description": "Noleggio tubazione in gomma da 3 m",
+        "quantity": 1,
+        "unit_of_measure": "piece_period",
+        "unit_price": 80,
+        "discount_percent": 0,
+        "net_amount": 80,
+        "vat_rate_percent": null,
+        "vat_amount": null,
+        "gross_amount": null
+      },
+      {
+        "line_number": 50,
+        "line_type": "stationary_boom",
+        "included": false,
+        "article_external_id": "DA-SRV-NOLEGGIO-BRACCIO-STAZIONARIO",
+        "article_1c_code": "00-00000179",
+        "description": "Braccio stazionario - non richiesto",
+        "quantity": 0,
+        "unit_of_measure": "period",
+        "unit_price": 0,
+        "discount_percent": 0,
+        "net_amount": 0,
+        "vat_rate_percent": null,
+        "vat_amount": null,
+        "gross_amount": null
+      },
+      {
+        "line_number": 60,
+        "line_type": "compressor",
+        "included": false,
+        "article_external_id": "DA-SRV-NOLEGGIO-COMPRESSORE",
+        "article_1c_code": "00-00000185",
+        "description": "Compressore - non richiesto",
+        "quantity": 0,
+        "unit_of_measure": "period",
+        "unit_price": 0,
+        "discount_percent": 0,
+        "net_amount": 0,
+        "vat_rate_percent": null,
+        "vat_amount": null,
+        "gross_amount": null
+      },
+      {
+        "line_number": 70,
+        "line_type": "setup",
+        "included": false,
+        "article_external_id": "DA-SRV-ALLESTIMENTO-0-50",
+        "article_1c_code": "00-00000193",
+        "description": "Allestimento cantiere - Fino a 50 km",
+        "quantity": 0,
+        "unit_of_measure": "service",
+        "unit_price": 0,
+        "discount_percent": 0,
+        "net_amount": 0,
+        "vat_rate_percent": null,
+        "vat_amount": null,
+        "gross_amount": null
+      },
+      {
+        "line_number": 80,
+        "line_type": "teardown",
+        "included": false,
+        "article_external_id": "DA-SRV-DISALLESTIMENTO-0-50",
+        "article_1c_code": "00-00000199",
+        "description": "Disallestimento cantiere - Fino a 50 km",
+        "quantity": 0,
+        "unit_of_measure": "service",
+        "unit_price": 0,
+        "discount_percent": 0,
+        "net_amount": 0,
+        "vat_rate_percent": null,
+        "vat_amount": null,
+        "gross_amount": null
+      }
+    ],
+    "costs": {
+      "equipment_rental": 2700,
+      "personnel": 0,
+      "pipeline": 350,
+      "stationary_boom": 0,
+      "compressor": 0,
+      "setup": 0,
+      "teardown": 0,
+      "total_indicative": 3050
+    },
+    "review": {
+      "survey_required": false,
+      "price_review_required": false,
+      "technical_confirmation_required": true
+    }
+  },
+  "website": ""
+}
