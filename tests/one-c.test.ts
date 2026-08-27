@@ -4,6 +4,7 @@ import {
   escapeODataString,
   mapOneCLead,
   oneCLeadDescription,
+  oneCQuoteReference,
   validateOneCLeadRequest,
   type OneCLeadRequest,
 } from "../app/one-c.ts";
@@ -174,4 +175,12 @@ test("tutte le 128 combinazioni di voci opzionali conservano otto righe e il tot
 test("la ricerca duplicati OData gestisce gli apostrofi", () => {
   assert.equal(escapeODataString("L'Edile S.r.l."), "L''Edile S.r.l.");
   assert.equal(oneCLeadDescription({ ...payload, customer: { ...payload.customer, company_name: "L'Edile" } }), "L'Edile · DL-20260826");
+});
+
+test("ogni invio genera un riferimento preventivo univoco e leggibile", () => {
+  assert.equal(oneCQuoteReference("2026-08-27", "12345678-abcd-4000-8000-000000000000"), "DL-20260827-12345678");
+  assert.notEqual(
+    oneCQuoteReference("2026-08-27", "12345678-abcd-4000-8000-000000000000"),
+    oneCQuoteReference("2026-08-27", "87654321-abcd-4000-8000-000000000000"),
+  );
 });

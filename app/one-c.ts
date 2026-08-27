@@ -141,6 +141,13 @@ export function oneCLeadDescription(data: OneCLeadRequest) {
   return `${data.customer.company_name.trim()} · ${data.quote.quote_reference}`.slice(0, 250);
 }
 
+export function oneCQuoteReference(date: string, eventId: string) {
+  const day = date.replaceAll(/[^0-9]/g, "").slice(0, 8);
+  const suffix = eventId.replaceAll(/[^a-zA-Z0-9]/g, "").slice(0, 8).toUpperCase();
+  if (day.length !== 8 || suffix.length < 6) throw new Error("Riferimento preventivo non valido");
+  return `DL-${day}-${suffix}`;
+}
+
 export function mapOneCLead(data: OneCLeadRequest) {
   const total = data.quote.costs.total_indicative;
   const basicInformation = [

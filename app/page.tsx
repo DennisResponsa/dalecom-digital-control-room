@@ -21,6 +21,7 @@ import {
 } from "./quote-logic";
 import type { Equipment, Service } from "./quote-logic";
 import { buildOneCQuoteLines, ONE_C_SCHEMA_VERSION } from "./one-c-contract";
+import { oneCQuoteReference } from "./one-c";
 
 type Place = { name: string; km: number };
 type Asset = {
@@ -361,6 +362,7 @@ export default function Home() {
   const [submitting, setSubmitting] = useState(false);
   const [integrationError, setIntegrationError] = useState("");
   const [oneCLead, setOneCLead] = useState<{ code: string | null; duplicate: boolean } | null>(null);
+  const [submittedQuoteReference, setSubmittedQuoteReference] = useState<string | null>(null);
   const [client, setClient] = useState({
     company: "",
     vat: "",
@@ -472,7 +474,9 @@ export default function Home() {
     requiresSurvey ||
     shift === "notturno" ||
     (lineIsIncluded && !hasStandardConcreteLine);
-  const quoteReference = `DL-${date.replaceAll("-", "")}`;
+  const quoteReference = confirmed && submittedQuoteReference
+    ? submittedQuoteReference
+    : `DL-${date.replaceAll("-", "")}`;
   const transmatHose =
     selectedAsset?.name === "Turbosol Transmat 250"
       ? aggregateSize <= 12
@@ -573,7 +577,9 @@ export default function Home() {
     if (!clientValid || submitting) return;
     setSubmitting(true);
     setIntegrationError("");
-    const subject = `${requiresSurvey ? "CONCORDARE SOPRALLUOGO · " : ""}Richiesta preventivo Dalecom · ${client.company} · ${quoteReference}`;
+    const eventId = crypto.randomUUID();
+    const submissionReference = oneCQuoteReference(date, eventId);
+    const subject = `${requiresSurvey ? "CONCORDARE SOPRALLUOGO · " : ""}Richiesta preventivo Dalecom · ${client.company} · ${submissionReference}`;
     const body = [
       ...(requiresSurvey
         ? [
@@ -640,7 +646,7 @@ export default function Home() {
           : `Tubazioni specifiche malte/massetti: DA QUOTARE`,
       `Totale indicativo${requiresSurvey ? " salvo sopralluogo" : ""}${requiresPriceReview ? " e conferma economica" : ""}: € ${quote.total.toLocaleString("it-IT")}`,
       ``,
-      `Riferimento: ${quoteReference}`,
+      `Riferimento: ${submissionReference}`,
     ].join("\n");
     const emailWindow = window.open("about:blank", "_blank");
     const serviceCode = service === "freddo" ? "cold" : service === "semifreddo" ? "semi_cold" : "hot";
@@ -680,7 +686,7 @@ export default function Home() {
     const payload = {
       schema_version: ONE_C_SCHEMA_VERSION,
       payload_type: "dalecom.quote",
-      event_id: crypto.randomUUID(),
+      event_id: eventId,
       event_type: "dalecom.quote.created",
       occurred_at: new Date().toISOString(),
       source: {
@@ -704,7 +710,7 @@ export default function Home() {
         privacy_consent_at: new Date().toISOString(),
       },
       quote: {
-        quote_reference: quoteReference,
+        quote_reference: submissionReference,
         quote_status: "indicative",
         validity_hours: 48,
         currency: "EUR",
@@ -818,6 +824,7 @@ export default function Home() {
       if (!response.ok || !result.success) throw new Error(result.error || "Invio non riuscito");
 
       setOneCLead({ code: result.lead_code || null, duplicate: Boolean(result.duplicate) });
+      setSubmittedQuoteReference(submissionReference);
       setConfirmed(true);
       const crmLine = `\nLead 1C: ${result.lead_code || "creato"}${result.duplicate ? " · già presente" : ""}`;
       const gmailCompose = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent("dennis.cumerlato@gmail.com")}&cc=${encodeURIComponent("riolfatti.thomas76@gmail.com")}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body + crmLine)}`;

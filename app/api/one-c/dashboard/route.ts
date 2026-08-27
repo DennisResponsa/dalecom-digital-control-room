@@ -30,14 +30,22 @@ export async function GET() {
   async function rows<T>(entity: string, select: string, orderBy?: string, top = 500) {
     const query = new URLSearchParams({ $select: select, $filter: "DeletionMark eq false", $top: String(top) });
     if (orderBy) query.set("$orderby", orderBy);
-    const response = await fetch(`${baseUrl}/${entity}?${query}`, {
-      headers,
-      cache: "no-store",
-      signal: AbortSignal.timeout(15_000),
-    });
-    if (!response.ok) throw new Error(`${entity} ${response.status}`);
-    const body = (await response.json()) as ODataEnvelope<T>;
-    return Array.isArray(body.value) ? body.value : [];
+    let lastStatus = 0;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const response = await fetch(`${baseUrl}/${entity}?${query}`, {
+        headers,
+        cache: "no-store",
+        signal: AbortSignal.timeout(15_000),
+      });
+      lastStatus = response.status;
+      if (response.ok) {
+        const body = (await response.json()) as ODataEnvelope<T>;
+        return Array.isArray(body.value) ? body.value : [];
+      }
+      if (response.status < 500 || attempt === 2) break;
+      await new Promise((resolve) => setTimeout(resolve, 200 * (attempt + 1)));
+    }
+    throw new Error(`${entity} ${lastStatus}`);
   }
 
   try {
