@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import styles from "./page.module.css";
+import catalog from "./catalog.module.css";
+import { dutiesForCode, dutyGroups, procedures } from "./data";
 
 type View = "organigramma" | "mansionari" | "procedure";
 type Role = { id: string; title: string; person: string; area: string; color: "orange" | "cyan" | "green"; duties: string[]; members?: string[] };
@@ -62,34 +64,17 @@ function membersFor(role: Role) {
     .filter(Boolean);
 }
 
-const procedures = [
-  { code: "PR-01", title: "Programmazione materiali da trattare", cadence: "Settimanale", owner: "Logistica generale", flow: "Priorità → destinazione → data di utilizzo", status: "Pronta per 1C" },
-  { code: "PR-02", title: "Presa in carico dei materiali", cadence: "Giornaliera", owner: "Ogni reparto", flow: "Da lavorare → in lavorazione → completato", status: "Pronta per 1C" },
-  { code: "PR-03", title: "Checklist reparto lavaggio", cadence: "Ogni lavorazione", owner: "Lavaggio", flow: "Pulizia → controllo → anomalie → riparazione", status: "Checklist" },
-  { code: "PR-04", title: "Riparazione e verniciatura", cadence: "Programmata", owner: "Officina Treviso", flow: "Intervento → priorità → scadenza → standard Milano", status: "Checklist" },
-  { code: "PR-05", title: "Controllo standard di resa", cadence: "Prima del magazzino", owner: "Reparto + logistica", flow: "Misure → finitura → accessori → funzionalità", status: "Controllo qualità" },
-  { code: "PR-06", title: "Identificazione RFID", cadence: "Chiusura lavorazione", owner: "Logistica", flow: "Codice → tipologia → stato → sede → destinazione", status: "Blocco obbligatorio" },
-  { code: "PR-07", title: "Trasferimenti tra sedi", cadence: "48/72 ore prima", owner: "Logistica generale", flow: "Verifica → RFID → lista consegna → trasferimento", status: "Pianificazione" },
-  { code: "PR-08", title: "Gestione materiale non conforme", cadence: "Su anomalia", owner: "Responsabile reparto", flow: "Alert → blocco → intervento → chiusura", status: "Alert automatico" },
-  { code: "PR-09", title: "Verifica fabbisogni futuri", cadence: "15/30 giorni", owner: "Logistica + sedi", flow: "Cantieri → richieste → disponibilità → programma", status: "Previsione" },
-  { code: "PR-10", title: "Punto logistica–reparti", cadence: "Settimanale · 15/20 min", owner: "Logistica e responsabili", flow: "Urgenze → ritardi → carichi → trasferimenti", status: "Riunione eccezioni" },
-];
-
-const roleDuties = [
-  { title: "Commerciale e ordini", owner: "Uffici commerciali", items: ["Sviluppo preventivi e idee di costo", "Completamento documentale degli ordini", "Associazione di macchine e operatori", "Supporto alla chiusura dei contratti"] },
-  { title: "Direzione operativa e amministrazione", owner: "CFO / COO", items: ["Coordinamento delle attività d’ufficio", "Supervisione responsabilità, tempi e priorità", "Controllo di gestione e bilancio", "Contabilità aziendale generale"] },
-  { title: "Tecnologia e compliance", owner: "CTO / R&D", items: ["Integrazione AI verso il gestionale", "Sviluppo software di terze parti", "Report ACCISE, rifiuti, carburanti e oli", "Programmazione task del team IT"] },
-  { title: "Tecnica e cantieri", owner: "Direzione tecnica", items: ["Gestione cantieri Triveneto e direzionali", "Ricerca tecnologie e attrezzature", "Formazione del reparto tecnico", "Affiancamento logistica e personale di cantiere"] },
-];
-
 export default function OrganizationPage() {
   const [view, setView] = useState<View>("organigramma");
   const [selectedId, setSelectedId] = useState("02");
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
+  const [selectedProcedureCode, setSelectedProcedureCode] = useState("A");
   const allRoles = useMemo(() => [...leadership, ...management, ...operations], []);
   const selected = allRoles.find((role) => role.id === selectedId) || allRoles[0];
   const selectedMembers = membersFor(selected);
   const employeeRoles = selectedEmployee ? allRoles.filter((role) => membersFor(role).includes(selectedEmployee)) : [];
+  const selectedDutyGroup = dutyGroups.find((group) => group.codes.includes(selectedId));
+  const selectedProcedure = procedures.find((procedure) => procedure.code === selectedProcedureCode) || procedures[0];
   const selectRole = (id: string) => { setSelectedId(id); setSelectedEmployee(null); };
 
   return <main className={styles.page}>
@@ -119,21 +104,26 @@ export default function OrganizationPage() {
         <aside className={styles.roleDetail}>
           {selectedEmployee ? <>
             <small>MANSIONARIO DIPENDENTE</small><h2>{selectedEmployee}</h2><b>{employeeRoles.length} {employeeRoles.length === 1 ? "ruolo associato" : "ruoli associati"}</b>
-            <div className={styles.employeeRoles}>{employeeRoles.map((role) => <section key={role.id}><span>CODICE {role.id} · {role.area}</span><h3>{role.title}</h3><ul>{role.duties.map((duty) => <li key={duty}>{duty}</li>)}</ul></section>)}</div>
+            <div className={styles.employeeRoles}>{employeeRoles.map((role) => <section key={role.id}><span>CODICE {role.id} · {role.area}</span><h3>{role.title}</h3><ul>{dutiesForCode(role.id).map((duty) => <li key={duty}>{duty}</li>)}</ul></section>)}</div>
             <button className={styles.backToRole} onClick={() => setSelectedEmployee(null)}>← Torna al ruolo {selected.id}</button>
           </> : <>
             <small>RUOLO {selected.id}</small><h2>{selected.title}</h2><b>{selected.person}</b><span>{selected.area}</span>
-            <ul>{selected.duties.map((duty) => <li key={duty}>{duty}</li>)}</ul>
+            <ul>{dutiesForCode(selected.id).map((duty) => <li key={duty}>{duty}</li>)}</ul>
             {selectedMembers.length > 0 && <div className={styles.people}><small>DIPENDENTI COLLEGATI · CLICCA PER IL MANSIONARIO</small>{selectedMembers.map((name) => <button key={name} onClick={() => setSelectedEmployee(name)}>{name}<i>→</i></button>)}</div>}
             <div className={styles.sync}><i /> Scheda pronta per sincronizzazione 1C</div>
           </>}
         </aside>
       </section>
     </>}
-    {view === "mansionari" && <section className={styles.dutyGrid}>{roleDuties.map((group, index) => <article key={group.title}><div><span>{String(index + 1).padStart(2, "0")}</span><small>{group.owner}</small></div><h2>{group.title}</h2><ul>{group.items.map((item) => <li key={item}>{item}</li>)}</ul><footer>Responsabilità e attività · fonte documentale</footer></article>)}</section>}
-    {view === "procedure" && <section className={styles.procedureList}>
-      <header><div><small>10 PROCEDURE MAPPATE</small><h2>Dalla regola all’esecuzione</h2></div><span>Il prossimo passo è trasformarle in checklist e task 1C.</span></header>
-      {procedures.map((procedure) => <article key={procedure.code}><b>{procedure.code}</b><div><h3>{procedure.title}</h3><p>{procedure.flow}</p></div><dl><div><dt>Frequenza</dt><dd>{procedure.cadence}</dd></div><div><dt>Responsabile</dt><dd>{procedure.owner}</dd></div></dl><span>{procedure.status}</span></article>)}
+    {view === "mansionari" && <section className={catalog.catalogShell}>
+      <div className={catalog.catalogIntro}><div><small>37 CODICI · 27 GRUPPI DI RESPONSABILITÀ</small><h2>Mansionario completo</h2></div><p>Seleziona un codice per leggere tutte le attività assegnate nel documento originale.</p></div>
+      <div className={catalog.catalogBody}><div className={catalog.codeCatalog}>{allRoles.map((role) => <button key={role.id} className={selectedId === role.id ? catalog.codeActive : ""} onClick={() => selectRole(role.id)}><b>{role.id}</b><span>{role.title}</span><small>{role.person}</small></button>)}</div>
+      <article className={catalog.catalogDetail}><header><span>CODICE {selected.id}</span><small>{selected.area}</small></header><h2>{selectedDutyGroup?.title || selected.title}</h2><b>{selected.person}</b><ul>{dutiesForCode(selected.id).map((item) => <li key={item}>{item}</li>)}</ul><footer>Fonte: mansionario completo · PDF rev. 25 agosto 2026</footer></article></div>
+    </section>}
+    {view === "procedure" && <section className={catalog.catalogShell}>
+      <div className={catalog.catalogIntro}><div><small>23 CODICI DI PROCEDURA · A–U2</small><h2>Procedure sintetiche intra-personale</h2></div><p>Seleziona una sigla per aprire flusso, frequenza, responsabili e controlli previsti.</p></div>
+      <div className={catalog.catalogBody}><div className={`${catalog.codeCatalog} ${catalog.procedureCatalog}`}>{procedures.map((procedure) => <button key={procedure.code} className={selectedProcedure.code === procedure.code ? catalog.codeActive : ""} onClick={() => setSelectedProcedureCode(procedure.code)}><b>{procedure.code}</b><span>{procedure.title}</span><small>{procedure.cadence}</small></button>)}</div>
+      <article className={`${catalog.catalogDetail} ${catalog.procedureDetail}`}><header><span>PROCEDURA {selectedProcedure.code}</span><small>{selectedProcedure.cadence}</small></header><h2>{selectedProcedure.title}</h2><b>{selectedProcedure.owner}</b><ol>{selectedProcedure.steps.map((step) => <li key={step}>{step}</li>)}</ol><footer>Struttura pronta per checklist, alert e task nel gestionale 1C</footer></article></div>
     </section>}
     <footer className={styles.footer}><span>Fonte: organigramma, mansionario e procedure soft · revisione 25 agosto 2026</span><b>Fase demo · dati strutturati per futura API 1C</b></footer>
   </main>;
