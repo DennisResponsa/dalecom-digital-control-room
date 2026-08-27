@@ -26,7 +26,14 @@ type DashboardData = {
     potential: number;
     customer: string;
     quoteReference: string;
+    contactName: string;
+    email: string;
+    phone: string;
     service: string;
+    job: string;
+    equipment: string;
+    location: string;
+    duration: string;
   }>;
 };
 
@@ -95,7 +102,14 @@ export default function GovernanceArea() {
             <div className={gov.leadCards}>
               {leads.map((lead) => <div className={gov.leadCard} key={lead.code}>
                 <div className={gov.leadCardTop}><b>{lead.quoteReference}</b><span>{currency(lead.potential)}</span></div>
-                <p>{lead.service}</p>
+                <div className={gov.leadTags}><span>{lead.service}</span><span>{lead.duration}</span></div>
+                <h5>{lead.job}</h5>
+                <dl>
+                  <div><dt>Macchina</dt><dd>{lead.equipment}</dd></div>
+                  <div><dt>Cantiere</dt><dd>{lead.location}</dd></div>
+                  <div><dt>Referente</dt><dd>{lead.contactName}</dd></div>
+                  <div><dt>Contatti</dt><dd>{lead.email}<br />{lead.phone}</dd></div>
+                </dl>
                 <footer><span>Lead {lead.code}</span><time>{lead.created ? new Date(lead.created).toLocaleDateString("it-IT") : "Data non disponibile"}</time></footer>
               </div>)}
             </div>

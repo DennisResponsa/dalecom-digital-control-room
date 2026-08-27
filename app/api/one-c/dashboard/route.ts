@@ -23,14 +23,32 @@ function json(body: Record<string, unknown>, status = 200) {
 function leadCard(lead: LeadRow) {
   const description = (lead.Description || "").trim();
   const referenceMatch = description.match(/^(.*?)\s*·\s*(DL-[A-Z0-9-]+)$/i);
-  const serviceMatch = (lead.KanbanDescription || "").match(/(?:^|\n)Servizio:\s*([^\r\n]+)/i);
+  const details = lead.KanbanDescription || "";
+  const field = (label: string) => details.match(new RegExp(`(?:^|\\n)${label}:\\s*([^\\r\\n]+)`, "i"))?.[1]?.trim() || "—";
+  let quote: Record<string, any> = {};
+  const jsonMarker = "DATI COMPLETI PREVENTIVO (JSON)";
+  const jsonStart = details.indexOf(jsonMarker);
+  if (jsonStart >= 0) {
+    try {
+      quote = JSON.parse(details.slice(jsonStart + jsonMarker.length).trim()) as Record<string, any>;
+    } catch {
+      quote = {};
+    }
+  }
   return {
     code: lead.Code || "—",
     created: lead.Created || null,
     potential: oneCNumericValue(lead.Potential),
     customer: referenceMatch?.[1]?.trim() || `Cliente ${lead.Code || "1C"}`,
     quoteReference: referenceMatch?.[2] || "—",
-    service: serviceMatch?.[1]?.trim() || "Preventivo Dalecom",
+    contactName: field("Referente"),
+    email: field("Email"),
+    phone: field("Telefono"),
+    service: field("Servizio") === "—" ? "Preventivo Dalecom" : field("Servizio"),
+    job: String(quote.job?.intervention || "Lavorazione da preventivo"),
+    equipment: String(quote.main_equipment?.asset_name || "Macchina da definire"),
+    location: [quote.site?.municipality, quote.site?.province].filter(Boolean).join(" · ") || "Cantiere da definire",
+    duration: String(quote.schedule?.duration_label || "Periodo da definire"),
   };
 }
 
