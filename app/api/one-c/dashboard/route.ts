@@ -25,6 +25,7 @@ function leadCard(lead: LeadRow) {
   const referenceMatch = description.match(/^(.*?)\s*·\s*(DL-[A-Z0-9-]+)$/i);
   const details = lead.KanbanDescription || "";
   const field = (label: string) => details.match(new RegExp(`(?:^|\\n)${label}:\\s*([^\\r\\n]+)`, "i"))?.[1]?.trim() || "—";
+  const jsonText = (name: string) => details.match(new RegExp(`"${name}"\\s*:\\s*"([^"]+)"`, "i"))?.[1]?.trim() || "";
   let quote: Record<string, any> = {};
   const jsonMarker = "DATI COMPLETI PREVENTIVO (JSON)";
   const jsonStart = details.indexOf(jsonMarker);
@@ -45,10 +46,10 @@ function leadCard(lead: LeadRow) {
     email: field("Email"),
     phone: field("Telefono"),
     service: field("Servizio") === "—" ? "Preventivo Dalecom" : field("Servizio"),
-    job: String(quote.job?.intervention || "Lavorazione da preventivo"),
-    equipment: String(quote.main_equipment?.asset_name || "Macchina da definire"),
-    location: [quote.site?.municipality, quote.site?.province].filter(Boolean).join(" · ") || "Cantiere da definire",
-    duration: String(quote.schedule?.duration_label || "Periodo da definire"),
+    job: String(quote.job?.intervention || jsonText("intervention") || "Preventivo Dalecom"),
+    equipment: String(quote.main_equipment?.asset_name || jsonText("asset_name")),
+    location: [quote.site?.municipality || jsonText("municipality"), quote.site?.province || jsonText("province")].filter(Boolean).join(" · "),
+    duration: String(quote.schedule?.duration_label || jsonText("duration_label")),
   };
 }
 
