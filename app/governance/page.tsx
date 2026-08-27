@@ -90,9 +90,10 @@ export default function GovernanceArea() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
+      const refreshKey = Date.now();
       const [dashboardResult, fleetResult] = await Promise.allSettled([
-        fetch("/api/one-c/dashboard", { cache: "no-store" }).then((response) => response.json() as Promise<DashboardData>),
-        fetch("/api/wialon/fleet", { cache: "no-store" }).then((response) => response.json() as Promise<FleetData>),
+        fetch(`/api/one-c/dashboard?refresh=${refreshKey}`, { cache: "no-store" }).then((response) => response.json() as Promise<DashboardData>),
+        fetch(`/api/wialon/fleet?refresh=${refreshKey}`, { cache: "no-store" }).then((response) => response.json() as Promise<FleetData>),
       ]);
       setData(dashboardResult.status === "fulfilled" ? dashboardResult.value : { success: false, error: "Impossibile raggiungere 1C" });
       setFleet(fleetResult.status === "fulfilled" ? fleetResult.value : { success: false, error: "Impossibile raggiungere la flotta" });
