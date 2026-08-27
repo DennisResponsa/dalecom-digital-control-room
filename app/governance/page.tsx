@@ -35,18 +35,67 @@ type DashboardData = {
     location: string;
     duration: string;
   }>;
+  orderCards?: Array<{
+    number: string;
+    date: string | null;
+    amount: number;
+    customer: string;
+    responsible: string;
+    status: string;
+    posted: boolean;
+    closed: boolean;
+    comment: string;
+  }>;
+  employeeCards?: Array<{
+    code: string;
+    name: string;
+    type: string;
+    position: string;
+    department: string;
+  }>;
+  timesheetCards?: Array<{
+    number: string;
+    date: string | null;
+    period: string | null;
+    posted: boolean;
+    status: string;
+    people: number;
+    hours: number;
+    comment: string;
+  }>;
 };
+
+type FleetData = {
+  success: boolean;
+  error?: string;
+  vehicles?: Array<{
+    name: string;
+    online: boolean;
+    lastMessageUtc: string | null;
+    speedKmh: number;
+    distance24hKm: number;
+    fuelLevelPercent: number | null;
+    position: { latitude: number; longitude: number } | null;
+  }>;
+};
+
+type Panel = "leads" | "orders" | "employees" | "timesheets" | "fleet" | null;
 
 export default function GovernanceArea() {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [fleet, setFleet] = useState<FleetData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showLeads, setShowLeads] = useState(false);
+  const [activePanel, setActivePanel] = useState<Panel>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/one-c/dashboard", { cache: "no-store" });
-      setData((await response.json()) as DashboardData);
+      const [dashboardResult, fleetResult] = await Promise.allSettled([
+        fetch("/api/one-c/dashboard", { cache: "no-store" }).then((response) => response.json() as Promise<DashboardData>),
+        fetch("/api/wialon/fleet", { cache: "no-store" }).then((response) => response.json() as Promise<FleetData>),
+      ]);
+      setData(dashboardResult.status === "fulfilled" ? dashboardResult.value : { success: false, error: "Impossibile raggiungere 1C" });
+      setFleet(fleetResult.status === "fulfilled" ? fleetResult.value : { success: false, error: "Impossibile raggiungere la flotta" });
     } catch {
       setData({ success: false, error: "Impossibile raggiungere 1C" });
     } finally {
@@ -70,6 +119,11 @@ export default function GovernanceArea() {
     (groups[lead.customer] ||= []).push(lead);
     return groups;
   }, {});
+  const orderGroups = (data?.orderCards || []).reduce<Record<string, NonNullable<DashboardData["orderCards"]>>>((groups, order) => {
+    (groups[order.customer] ||= []).push(order);
+    return groups;
+  }, {});
+  const togglePanel = (panel: Exclude<Panel, null>) => setActivePanel((current) => current === panel ? null : panel);
 
   return <main className={styles.page}>
     <header className={styles.top}>
@@ -87,14 +141,23 @@ export default function GovernanceArea() {
         <button className={gov.refresh} onClick={() => void load()} disabled={loading}>{loading ? "Aggiorno…" : "Aggiorna dati"}</button>
       </div>
       {!data?.success ? <div className={gov.dataError}>{loading ? "Lettura dei dati 1C in corso…" : data?.error}</div> : <div className={gov.liveGrid}>
-        <button type="button" className={gov.leadKpi} onClick={() => setShowLeads((visible) => !visible)} aria-expanded={showLeads}>
-          <small>Lead CRM · clicca per aprire</small><strong>{data.kpis?.leads || 0}</strong><span>Potenziale {currency(data.kpis?.leadPotential || 0)}</span><em>{showLeads ? "Chiudi schede ↑" : "Vedi schede lead →"}</em>
+        <button type="button" className={gov.leadKpi} onClick={() => togglePanel("leads")} aria-expanded={activePanel === "leads"}>
+          <small>Lead CRM · apri</small><strong>{data.kpis?.leads || 0}</strong><span>Potenziale {currency(data.kpis?.leadPotential || 0)}</span><em>{activePanel === "leads" ? "Chiudi schede ↑" : "Vedi lead →"}</em>
         </button>
-        <div><small>Ordini già presenti in 1C</small><strong>{data.kpis?.orders || 0}</strong><span>{data.kpis?.postedOrders || 0} registrati · {currency(data.kpis?.orderValue || 0)}</span></div>
-        <div><small>Dipendenti</small><strong>{data.kpis?.employees || 0}</strong><span>Anagrafica attiva in 1C</span></div>
-        <div><small>Rapportini</small><strong>{data.kpis?.timesheets || 0}</strong><span>{data.kpis?.postedTimesheets || 0} registrati</span></div>
+        <button type="button" className={gov.leadKpi} onClick={() => togglePanel("orders")} aria-expanded={activePanel === "orders"}>
+          <small>Ordini 1C · apri</small><strong>{data.kpis?.orders || 0}</strong><span>{data.kpis?.postedOrders || 0} registrati · {currency(data.kpis?.orderValue || 0)}</span><em>{activePanel === "orders" ? "Chiudi schede ↑" : "Vedi ordini →"}</em>
+        </button>
+        <button type="button" className={gov.leadKpi} onClick={() => togglePanel("employees")} aria-expanded={activePanel === "employees"}>
+          <small>Dipendenti · apri</small><strong>{data.kpis?.employees || 0}</strong><span>Anagrafica attiva in 1C</span><em>{activePanel === "employees" ? "Chiudi schede ↑" : "Vedi persone →"}</em>
+        </button>
+        <button type="button" className={gov.leadKpi} onClick={() => togglePanel("timesheets")} aria-expanded={activePanel === "timesheets"}>
+          <small>Rapportini · apri</small><strong>{data.kpis?.timesheets || 0}</strong><span>{data.kpis?.postedTimesheets || 0} registrati</span><em>{activePanel === "timesheets" ? "Chiudi schede ↑" : "Vedi rapportini →"}</em>
+        </button>
+        <button type="button" className={gov.leadKpi} onClick={() => togglePanel("fleet")} aria-expanded={activePanel === "fleet"}>
+          <small>Flotta GPS · apri</small><strong>{fleet?.vehicles?.length || 0}</strong><span>{fleet?.vehicles?.filter((vehicle) => vehicle.online).length || 0} mezzi online</span><em>{activePanel === "fleet" ? "Chiudi schede ↑" : "Vedi mezzi →"}</em>
+        </button>
       </div>}
-      {data?.success && showLeads && <section className={gov.leadPanel} aria-label="Schede lead CRM">
+      {data?.success && activePanel === "leads" && <section className={gov.leadPanel} aria-label="Schede lead CRM">
         <div className={gov.leadPanelHead}><div><small>PIPELINE COMMERCIALE</small><h3>Schede lead per cliente</h3></div><span>{data.kpis?.leads || 0} lead · {currency(data.kpis?.leadPotential || 0)}</span></div>
         <div className={gov.customerGroups}>
           {Object.entries(leadGroups).map(([customer, leads]) => <article className={gov.customerGroup} key={customer}>
@@ -116,8 +179,49 @@ export default function GovernanceArea() {
           </article>)}
         </div>
       </section>}
+      {data?.success && activePanel === "orders" && <section className={gov.leadPanel} aria-label="Schede ordini 1C">
+        <div className={gov.leadPanelHead}><div><small>PORTAFOGLIO ORDINI</small><h3>Ordini per cliente</h3></div><span>{data.kpis?.orders || 0} ordini · {currency(data.kpis?.orderValue || 0)}</span></div>
+        <div className={gov.customerGroups}>
+          {Object.entries(orderGroups).map(([customer, orders]) => <article className={gov.customerGroup} key={customer}>
+            <header><div><small>CLIENTE</small><h4>{customer}</h4></div><div><b>{orders.length}</b><span>ordini · {currency(orders.reduce((sum, order) => sum + order.amount, 0))}</span></div></header>
+            <div className={gov.leadCards}>{orders.map((order) => <div className={gov.leadCard} key={order.number}>
+              <div className={gov.leadCardTop}><b>Ordine {order.number}</b><span>{currency(order.amount)}</span></div>
+              <div className={gov.leadTags}><span>{order.status}</span><span>{order.posted ? "Registrato" : "Bozza"}</span></div>
+              <dl><div><dt>Responsabile</dt><dd>{order.responsible}</dd></div>{order.comment && <div><dt>Nota</dt><dd>{order.comment}</dd></div>}</dl>
+              <footer><span>{order.closed ? "Chiuso" : "Aperto"}</span><time>{order.date ? new Date(order.date).toLocaleDateString("it-IT") : "Data non disponibile"}</time></footer>
+            </div>)}</div>
+          </article>)}
+        </div>
+      </section>}
+      {data?.success && activePanel === "employees" && <section className={gov.leadPanel} aria-label="Schede dipendenti 1C">
+        <div className={gov.leadPanelHead}><div><small>PERSONE E ORGANIZZAZIONE</small><h3>Anagrafica dipendenti</h3></div><span>{data.kpis?.employees || 0} persone attive</span></div>
+        <div className={gov.leadCards}>{(data.employeeCards || []).map((employee) => <div className={gov.leadCard} key={employee.code}>
+          <div className={gov.leadCardTop}><b>{employee.name}</b><span>{employee.code}</span></div>
+          <div className={gov.leadTags}><span>{employee.type}</span></div>
+          <dl><div><dt>Ruolo</dt><dd>{employee.position}</dd></div><div><dt>Reparto</dt><dd>{employee.department}</dd></div></dl>
+          <footer><span>Anagrafica 1C</span><span>Attiva</span></footer>
+        </div>)}</div>
+      </section>}
+      {data?.success && activePanel === "timesheets" && <section className={gov.leadPanel} aria-label="Schede rapportini 1C">
+        <div className={gov.leadPanelHead}><div><small>ORE E ATTIVITÀ</small><h3>Rapportini dipendenti</h3></div><span>{data.kpis?.timesheets || 0} documenti</span></div>
+        {(data.timesheetCards || []).length === 0 ? <div className={gov.emptyState}><b>Nessun rapportino presente in 1C</b><span>La sezione è pronta: le schede compariranno automaticamente non appena verranno caricati ore e rapportini.</span></div> : <div className={gov.leadCards}>{data.timesheetCards?.map((timesheet) => <div className={gov.leadCard} key={timesheet.number}>
+          <div className={gov.leadCardTop}><b>Rapportino {timesheet.number}</b><span>{timesheet.hours.toLocaleString("it-IT")} h</span></div>
+          <div className={gov.leadTags}><span>{timesheet.status}</span><span>{timesheet.people} persone</span></div>
+          {timesheet.comment && <dl><div><dt>Nota</dt><dd>{timesheet.comment}</dd></div></dl>}
+          <footer><span>{timesheet.period ? new Date(timesheet.period).toLocaleDateString("it-IT") : "Periodo da definire"}</span><time>{timesheet.date ? new Date(timesheet.date).toLocaleDateString("it-IT") : "—"}</time></footer>
+        </div>)}</div>}
+      </section>}
+      {data?.success && activePanel === "fleet" && <section className={gov.leadPanel} aria-label="Schede flotta GPS">
+        <div className={gov.leadPanelHead}><div><small>FLOTTA IN TEMPO REALE</small><h3>Stato operativo dei mezzi</h3></div><span>{fleet?.vehicles?.filter((vehicle) => vehicle.online).length || 0}/{fleet?.vehicles?.length || 0} online</span></div>
+        {!fleet?.success ? <div className={gov.emptyState}><b>Dati flotta momentaneamente non disponibili</b><span>{fleet?.error || "Il collegamento GPS verrà riprovato al prossimo aggiornamento."}</span></div> : <div className={gov.leadCards}>{(fleet.vehicles || []).map((vehicle) => <div className={gov.leadCard} key={vehicle.name}>
+          <div className={gov.leadCardTop}><b>{vehicle.name}</b><span>{vehicle.online ? "ONLINE" : "OFFLINE"}</span></div>
+          <div className={gov.leadTags}><span>{vehicle.speedKmh.toLocaleString("it-IT")} km/h</span><span>{vehicle.distance24hKm.toLocaleString("it-IT")} km oggi</span></div>
+          <dl><div><dt>Carburante</dt><dd>{vehicle.fuelLevelPercent == null ? "Dato non disponibile" : `${vehicle.fuelLevelPercent.toLocaleString("it-IT")} %`}</dd></div>{vehicle.position && <div><dt>Posizione demo</dt><dd>{vehicle.position.latitude.toFixed(4)}, {vehicle.position.longitude.toFixed(4)}</dd></div>}</dl>
+          <footer><span>Wialon live</span><time>{vehicle.lastMessageUtc ? new Date(vehicle.lastMessageUtc).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }) : "—"}</time></footer>
+        </div>)}</div>}
+      </section>}
       <div className={gov.dashboardActions}><a className={styles.secondary} href="/demo">Torna alla regia</a><a className={styles.primary} href={oneCUrl} target="_blank" rel="noreferrer">Apri il dettaglio in 1C ↗</a></div>
     </section>
-    <div className={styles.note}>Le schede mostrano solo dati commerciali essenziali. Credenziali, email, telefoni e nominativi dei referenti restano sul server.</div>
+    <div className={styles.note}>Ambiente demo collegato a 1C e Wialon: ogni scheda si aggiorna automaticamente quando vengono aggiunti nuovi dati.</div>
   </main>;
 }
