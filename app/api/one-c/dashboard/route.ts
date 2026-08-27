@@ -23,14 +23,14 @@ function json(body: Record<string, unknown>, status = 200) {
 function leadCard(lead: LeadRow) {
   const description = (lead.Description || "").trim();
   const referenceMatch = description.match(/^(.*?)\s*·\s*(DL-[A-Z0-9-]+)$/i);
-  const kanbanParts = (lead.KanbanDescription || "").split("·").map((part) => part.trim()).filter(Boolean);
+  const serviceMatch = (lead.KanbanDescription || "").match(/(?:^|\n)Servizio:\s*([^\r\n]+)/i);
   return {
     code: lead.Code || "—",
     created: lead.Created || null,
     potential: oneCNumericValue(lead.Potential),
     customer: referenceMatch?.[1]?.trim() || `Cliente ${lead.Code || "1C"}`,
-    quoteReference: referenceMatch?.[2] || kanbanParts.find((part) => /^DL-/i.test(part)) || "—",
-    service: kanbanParts.at(-1) && !kanbanParts.at(-1)?.startsWith("€") ? kanbanParts.at(-1) : "Preventivo Dalecom",
+    quoteReference: referenceMatch?.[2] || "—",
+    service: serviceMatch?.[1]?.trim() || "Preventivo Dalecom",
   };
 }
 
