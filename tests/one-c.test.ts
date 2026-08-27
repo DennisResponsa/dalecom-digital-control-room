@@ -4,6 +4,7 @@ import {
   escapeODataString,
   mapOneCLead,
   oneCLeadDescription,
+  oneCNumericValue,
   oneCQuoteReference,
   validateOneCLeadRequest,
   type OneCLeadRequest,
@@ -183,4 +184,11 @@ test("ogni invio genera un riferimento preventivo univoco e leggibile", () => {
     oneCQuoteReference("2026-08-27", "12345678-abcd-4000-8000-000000000000"),
     oneCQuoteReference("2026-08-27", "87654321-abcd-4000-8000-000000000000"),
   );
+});
+
+test("gli importi OData vengono letti sia come numeri sia come decimali testuali", () => {
+  assert.equal(oneCNumericValue(12500), 12500);
+  assert.equal(oneCNumericValue("12500.50"), 12500.5);
+  assert.equal(oneCNumericValue("12500,50"), 12500.5);
+  assert.equal(oneCNumericValue(null), 0);
 });

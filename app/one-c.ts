@@ -148,6 +148,15 @@ export function oneCQuoteReference(date: string, eventId: string) {
   return `DL-${day}-${suffix}`;
 }
 
+export function oneCNumericValue(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value.replace(",", "."));
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return 0;
+}
+
 export function mapOneCLead(data: OneCLeadRequest) {
   const total = data.quote.costs.total_indicative;
   const basicInformation = [

@@ -56,15 +56,26 @@ export async function POST(request: Request) {
 
   try {
     const filter = encodeURIComponent(`Description eq '${escapeODataString(description)}' and DeletionMark eq false`);
-    const duplicateResponse = await fetch(
-      `${endpoint}Catalog_Leads?$select=Ref_Key,Code,Description&$filter=${filter}&$top=1`,
-      { headers, cache: "no-store", signal: AbortSignal.timeout(15_000) },
-    );
-    if (!duplicateResponse.ok) throw new Error(`1C duplicate check ${duplicateResponse.status}`);
-    const duplicateData = (await duplicateResponse.json()) as {
-      value?: Array<{ Ref_Key: string; Code?: string; Description?: string }>;
+    const findExisting = async () => {
+      let lastStatus = 0;
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const response = await fetch(
+          `${endpoint}Catalog_Leads?$select=Ref_Key,Code,Description,Potential&$filter=${filter}&$top=1`,
+          { headers, cache: "no-store", signal: AbortSignal.timeout(15_000) },
+        );
+        lastStatus = response.status;
+        if (response.ok) {
+          const data = (await response.json()) as {
+            value?: Array<{ Ref_Key: string; Code?: string; Description?: string; Potential?: number | string }>;
+          };
+          return data.value?.[0] || null;
+        }
+        if (response.status < 500 || attempt === 2) break;
+        await new Promise((resolve) => setTimeout(resolve, 200 * (attempt + 1)));
+      }
+      throw new Error(`1C duplicate check ${lastStatus}`);
     };
-    const existing = duplicateData.value?.[0];
+    const existing = await findExisting();
     if (existing) {
       return json({
         success: true,
@@ -81,7 +92,20 @@ export async function POST(request: Request) {
       body: JSON.stringify(mapOneCLead(validated.data)),
       signal: AbortSignal.timeout(15_000),
     });
-    if (!createResponse.ok) throw new Error(`1C create lead ${createResponse.status}`);
+    if (!createResponse.ok) {
+      const recovered = await findExisting();
+      if (recovered) {
+        return json({
+          success: true,
+          duplicate: false,
+          recovered: true,
+          quote_reference: validated.data.quote.quote_reference,
+          lead_id: recovered.Ref_Key,
+          lead_code: recovered.Code || null,
+        }, 201);
+      }
+      throw new Error(`1C create lead ${createResponse.status}`);
+    }
     const created = (await createResponse.json()) as {
       Ref_Key: string;
       Code?: string;

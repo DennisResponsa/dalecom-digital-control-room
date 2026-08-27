@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { oneCNumericValue } from "../../../one-c";
 
 type ODataEnvelope<T> = { value?: T[] };
 type LeadRow = { Code?: string; Created?: string; Potential?: number; DeletionMark?: boolean };
@@ -10,10 +11,6 @@ function json(body: Record<string, unknown>, status = 200) {
     status,
     headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" },
   });
-}
-
-function finite(value: unknown) {
-  return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
 export async function GET() {
@@ -64,9 +61,9 @@ export async function GET() {
       privacy: "Indicatori aggregati; nessun dato cliente esposto",
       kpis: {
         leads: leads.length,
-        leadPotential: leads.reduce((sum, lead) => sum + finite(lead.Potential), 0),
+        leadPotential: leads.reduce((sum, lead) => sum + oneCNumericValue(lead.Potential), 0),
         orders: orders.length,
-        orderValue: orders.reduce((sum, order) => sum + finite(order.DocumentAmount), 0),
+        orderValue: orders.reduce((sum, order) => sum + oneCNumericValue(order.DocumentAmount), 0),
         employees: activeEmployees.length,
         timesheets: timesheets.length,
         postedOrders: orders.filter((order) => order.Posted).length,
