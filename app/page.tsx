@@ -837,8 +837,11 @@ export default function Home() {
           <Image src="/dalecom-logo.png" alt="Dalecom" width={154} height={47} priority />
           <span>Preventivo immediato</span>
         </div>
-        <div className="secure">
-          <i /> Sistema disponibilità in tempo reale
+        <div className="top-actions">
+          <a className="control-room-link" href="/demo">← Regia principale</a>
+          <div className="secure">
+            <i /> Sistema disponibilità in tempo reale
+          </div>
         </div>
       </header>
       <section className="hero">

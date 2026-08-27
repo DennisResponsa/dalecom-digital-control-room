@@ -1,0 +1,1 @@
+.nav{display:flex;align-items:center;gap:10px}@media(max-width:540px){.nav{gap:6px}.nav a{font-size:10px!important;padding:8px!important}.nav a:last-child{display:none}}

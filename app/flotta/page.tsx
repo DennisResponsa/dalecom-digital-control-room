@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import styles from "./page.module.css";
+import navStyles from "./nav.module.css";
 
 type Vehicle = {
   name: string;
@@ -86,7 +87,10 @@ export default function FleetPage() {
     <main className={styles.page}>
       <header className={styles.top}>
         <div className={styles.brandMark} aria-label="Dalecom"><i /><strong>DALECOM</strong></div>
-        <a href="/">Preventivo immediato →</a>
+        <nav className={navStyles.nav} aria-label="Navigazione demo">
+          <a href="/demo">← Regia principale</a>
+          <a href="/">Preventivo immediato →</a>
+        </nav>
       </header>
 
       <section className={styles.hero}>
