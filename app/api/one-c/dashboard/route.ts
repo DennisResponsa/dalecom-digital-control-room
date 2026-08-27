@@ -2,7 +2,14 @@ import { env } from "cloudflare:workers";
 import { oneCNumericValue } from "../../../one-c";
 
 type ODataEnvelope<T> = { value?: T[] };
-type LeadRow = { Code?: string; Created?: string; Potential?: number; DeletionMark?: boolean };
+type LeadRow = {
+  Code?: string;
+  Created?: string;
+  Potential?: number;
+  Description?: string;
+  KanbanDescription?: string;
+  DeletionMark?: boolean;
+};
 type OrderRow = { Number?: string; Date?: string; DocumentAmount?: number; Posted?: boolean; DeletionMark?: boolean };
 type TimesheetRow = { Number?: string; Date?: string; Posted?: boolean; DeletionMark?: boolean };
 
@@ -11,6 +18,20 @@ function json(body: Record<string, unknown>, status = 200) {
     status,
     headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" },
   });
+}
+
+function leadCard(lead: LeadRow) {
+  const description = (lead.Description || "").trim();
+  const referenceMatch = description.match(/^(.*?)\s*·\s*(DL-[A-Z0-9-]+)$/i);
+  const kanbanParts = (lead.KanbanDescription || "").split("·").map((part) => part.trim()).filter(Boolean);
+  return {
+    code: lead.Code || "—",
+    created: lead.Created || null,
+    potential: oneCNumericValue(lead.Potential),
+    customer: referenceMatch?.[1]?.trim() || `Cliente ${lead.Code || "1C"}`,
+    quoteReference: referenceMatch?.[2] || kanbanParts.find((part) => /^DL-/i.test(part)) || "—",
+    service: kanbanParts.at(-1) && !kanbanParts.at(-1)?.startsWith("€") ? kanbanParts.at(-1) : "Preventivo Dalecom",
+  };
 }
 
 export async function GET() {
@@ -61,18 +82,19 @@ export async function GET() {
 
   try {
     const [leads, orders, employees, timesheets] = await Promise.all([
-      rows<LeadRow>("Catalog_Leads", "Code,Created,Potential,DeletionMark", "Code", "Created desc"),
+      rows<LeadRow>("Catalog_Leads", "Code,Created,Potential,Description,KanbanDescription,DeletionMark", "Code", "Created desc"),
       rows<OrderRow>("Document_SalesOrder", "Number,Date,DocumentAmount,Posted,DeletionMark", "Number", "Date desc"),
       rows<{ Ref_Key?: string; IsFolder?: boolean; DeletionMark?: boolean }>("Catalog_Employees", "Ref_Key,IsFolder,DeletionMark", "Code"),
       rows<TimesheetRow>("Document_Timesheet", "Number,Date,Posted,DeletionMark", "Number", "Date desc"),
     ]);
     const activeEmployees = employees.filter((employee) => employee.IsFolder !== true);
+    const leadCards = leads.map(leadCard).sort((a, b) => b.code.localeCompare(a.code, "it", { numeric: true }));
 
     return json({
       success: true,
       source: "1C ERP · OData live",
       generatedAt: new Date().toISOString(),
-      privacy: "Indicatori aggregati; nessun dato cliente esposto",
+      privacy: "Schede commerciali senza contatti personali; email e telefoni non sono esposti",
       kpis: {
         leads: leads.length,
         leadPotential: leads.reduce((sum, lead) => sum + oneCNumericValue(lead.Potential), 0),
@@ -84,9 +106,10 @@ export async function GET() {
         postedTimesheets: timesheets.filter((timesheet) => timesheet.Posted).length,
       },
       recent: {
-        leads: leads.slice(0, 5).map((lead) => ({ code: lead.Code || "—", created: lead.Created || null })),
+        leads: leadCards.slice(0, 5),
         orders: orders.slice(0, 5).map((order) => ({ number: order.Number || "—", date: order.Date || null, posted: Boolean(order.Posted) })),
       },
+      leadCards,
     });
   } catch (error) {
     console.error("1C dashboard read failed", {
