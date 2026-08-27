@@ -40,21 +40,6 @@ export async function GET() {
     return Array.isArray(body.value) ? body.value : [];
   }
 
-  async function count(entity: string, fallback: unknown[]) {
-    try {
-      const response = await fetch(`${baseUrl}/${entity}/$count?$filter=${encodeURIComponent("DeletionMark eq false")}`, {
-        headers,
-        cache: "no-store",
-        signal: AbortSignal.timeout(15_000),
-      });
-      if (!response.ok) throw new Error(String(response.status));
-      const value = Number(await response.text());
-      return Number.isFinite(value) ? value : fallback.length;
-    } catch {
-      return fallback.length;
-    }
-  }
-
   try {
     const [leads, orders, employees, timesheets] = await Promise.all([
       rows<LeadRow>("Catalog_Leads", "Code,Created,Potential,DeletionMark", "Created desc"),
@@ -63,12 +48,6 @@ export async function GET() {
       rows<TimesheetRow>("Document_Timesheet", "Number,Date,Posted,DeletionMark", "Date desc"),
     ]);
     const activeEmployees = employees.filter((employee) => employee.IsFolder !== true);
-    const [leadCount, orderCount, employeeCount, timesheetCount] = await Promise.all([
-      count("Catalog_Leads", leads),
-      count("Document_SalesOrder", orders),
-      count("Catalog_Employees", activeEmployees),
-      count("Document_Timesheet", timesheets),
-    ]);
 
     return json({
       success: true,
@@ -76,12 +55,12 @@ export async function GET() {
       generatedAt: new Date().toISOString(),
       privacy: "Indicatori aggregati; nessun dato cliente esposto",
       kpis: {
-        leads: leadCount,
+        leads: leads.length,
         leadPotential: leads.reduce((sum, lead) => sum + finite(lead.Potential), 0),
-        orders: orderCount,
+        orders: orders.length,
         orderValue: orders.reduce((sum, order) => sum + finite(order.DocumentAmount), 0),
-        employees: employeeCount,
-        timesheets: timesheetCount,
+        employees: activeEmployees.length,
+        timesheets: timesheets.length,
         postedOrders: orders.filter((order) => order.Posted).length,
         postedTimesheets: timesheets.filter((timesheet) => timesheet.Posted).length,
       },
