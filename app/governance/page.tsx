@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import styles from "../operational-area.module.css";
 import gov from "./page.module.css";
+import { reconciliationKpis, reconciledTimesheets } from "../reporting-demo";
 
 const oneCUrl = "https://sharedhosting.cloud2.1c-erp.it/Dalecom/";
 
@@ -125,6 +126,12 @@ export default function GovernanceArea() {
     return groups;
   }, {});
   const togglePanel = (panel: Exclude<Panel, null>) => setActivePanel((current) => current === panel ? null : panel);
+  const oneCTimesheetNumbers = new Set((data?.timesheetCards || []).map((item) => item.number));
+  const demoTimesheets = reconciledTimesheets.filter((item) => !oneCTimesheetNumbers.has(item.number));
+  const reconciledNumbers = new Set(reconciledTimesheets.map((item) => item.number));
+  const oneCOnlyTimesheets = (data?.timesheetCards || []).filter((item) => !reconciledNumbers.has(item.number));
+  const totalTimesheets = (data?.kpis?.timesheets || 0) + demoTimesheets.length;
+  const registeredTimesheets = (data?.kpis?.postedTimesheets || 0) + demoTimesheets.length;
 
   return <main className={styles.page}>
     <header className={styles.top}>
@@ -152,7 +159,7 @@ export default function GovernanceArea() {
           <small>Dipendenti · apri</small><strong>{data.kpis?.employees || 0}</strong><span>Anagrafica attiva in 1C</span><em>{activePanel === "employees" ? "Chiudi schede ↑" : "Vedi persone →"}</em>
         </button>
         <button type="button" className={gov.leadKpi} onClick={() => togglePanel("timesheets")} aria-expanded={activePanel === "timesheets"}>
-          <small>Rapportini · apri</small><strong>{data.kpis?.timesheets || 0}</strong><span>{data.kpis?.postedTimesheets || 0} registrati</span><em>{activePanel === "timesheets" ? "Chiudi schede ↑" : "Vedi rapportini →"}</em>
+          <small>Rapportini · 1C + controllo</small><strong>{totalTimesheets}</strong><span>{registeredTimesheets} ricevuti · {reconciliationKpis.discrepancies} incongruenza</span><em>{activePanel === "timesheets" ? "Chiudi schede ↑" : "Vedi rapportini →"}</em>
         </button>
         <button type="button" className={gov.leadKpi} onClick={() => togglePanel("fleet")} aria-expanded={activePanel === "fleet"}>
           <small>Flotta GPS · apri</small><strong>{fleet?.vehicles?.length || 0}</strong><span>{fleet?.vehicles?.filter((vehicle) => vehicle.online).length || 0} mezzi online</span><em>{activePanel === "fleet" ? "Chiudi schede ↑" : "Vedi mezzi →"}</em>
@@ -204,13 +211,18 @@ export default function GovernanceArea() {
         </div>)}</div>
       </section>}
       {data?.success && activePanel === "timesheets" && <section className={gov.leadPanel} aria-label="Schede rapportini 1C">
-        <div className={gov.leadPanelHead}><div><small>ORE E ATTIVITÀ</small><h3>Rapportini dipendenti</h3></div><span>{data.kpis?.timesheets || 0} documenti</span></div>
-        {(data.timesheetCards || []).length === 0 ? <div className={gov.emptyState}><b>Nessun rapportino presente in 1C</b><span>La sezione è pronta: le schede compariranno automaticamente non appena verranno caricati ore e rapportini.</span></div> : <div className={gov.leadCards}>{data.timesheetCards?.map((timesheet) => <div className={gov.leadCard} key={timesheet.number}>
+        <div className={gov.leadPanelHead}><div><small>ORE E ATTIVITÀ · CONTROLLO INCROCIATO</small><h3>Rapportini dipendenti</h3></div><span>{totalTimesheets} documenti · {reconciliationKpis.congruent} congruo · {reconciliationKpis.warnings} da completare · {reconciliationKpis.discrepancies} incongruenza</span></div>
+        <div className={gov.leadCards}>{reconciledTimesheets.map((timesheet) => <a className={gov.leadCard} href="/dipendenti" style={{ color: "inherit", textDecoration: "none" }} key={timesheet.number}>
+          <div className={gov.leadCardTop}><b>{timesheet.employee}</b><span>{timesheet.hours.toLocaleString("it-IT", { maximumFractionDigits: 2 })} h</span></div>
+          <div className={gov.leadTags}><span>{timesheet.status}</span><span>{timesheet.role}</span></div>
+          <dl><div><dt>Confronto</dt><dd>{timesheet.source} ⇄ {timesheet.thirdParty}</dd></div><div><dt>Esito</dt><dd>{timesheet.note}</dd></div></dl>
+          <footer><span>{timesheet.number}</span><time>{new Date(timesheet.date).toLocaleDateString("it-IT")}</time></footer>
+        </a>)}{oneCOnlyTimesheets.map((timesheet) => <div className={gov.leadCard} key={`1c-${timesheet.number}`}>
           <div className={gov.leadCardTop}><b>Rapportino {timesheet.number}</b><span>{timesheet.hours.toLocaleString("it-IT")} h</span></div>
           <div className={gov.leadTags}><span>{timesheet.status}</span><span>{timesheet.people} persone</span></div>
           {timesheet.comment && <dl><div><dt>Nota</dt><dd>{timesheet.comment}</dd></div></dl>}
           <footer><span>{timesheet.period ? new Date(timesheet.period).toLocaleDateString("it-IT") : "Periodo da definire"}</span><time>{timesheet.date ? new Date(timesheet.date).toLocaleDateString("it-IT") : "—"}</time></footer>
-        </div>)}</div>}
+        </div>)}</div>
       </section>}
       {data?.success && activePanel === "fleet" && <section className={gov.leadPanel} aria-label="Schede flotta GPS">
         <div className={gov.leadPanelHead}><div><small>FLOTTA IN TEMPO REALE</small><h3>Stato operativo dei mezzi</h3></div><span>{fleet?.vehicles?.filter((vehicle) => vehicle.online).length || 0}/{fleet?.vehicles?.length || 0} online</span></div>
