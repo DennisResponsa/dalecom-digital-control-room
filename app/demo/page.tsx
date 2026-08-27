@@ -39,6 +39,15 @@ const tools = [
     href: "/governance",
     accent: "violet",
   },
+  {
+    number: "05",
+    eyebrow: "ORGANIZZAZIONE",
+    title: "Persone e procedure",
+    description: "Organigramma, responsabilità e procedure operative in un unico sistema navigabile.",
+    action: "Apri l’organizzazione",
+    href: "/organizzazione",
+    accent: "yellow",
+  },
 ] as const;
 
 export default function DemoControlRoom() {
