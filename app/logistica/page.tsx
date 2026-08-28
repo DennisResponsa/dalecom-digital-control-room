@@ -3,10 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import styles from "./page.module.css";
 import palette from "./palette.module.css";
+import flowStyles from "./workflow.module.css";
 
 type Assignment = {
   id: string;
   date: number | null;
+  service: "cold" | "semi" | "hot";
   site: string;
   machine: string;
   vehicle: string;
@@ -51,14 +53,14 @@ const people = peopleResources.map((item) => item.value);
 const sites = siteResources.map((item) => item.value);
 
 const initialAssignments: Assignment[] = [
-  { id: "JOB-260824-A", date: 24, site: sites[0], machine: machines[10], vehicle: vehicles[3], people: [people[2], people[3], people[4], people[5]], start: "06:30", note: "Squadra Varna · programma cantieri" },
-  { id: "JOB-260824-B", date: 24, site: sites[1], machine: machines[4], vehicle: vehicles[2], people: [people[8], people[9], people[10]], start: "07:00", note: "ColaBeton · permanenza settimanale" },
-  { id: "JOB-260826", date: 26, site: sites[2], machine: machines[15], vehicle: vehicles[1], people: [people[7], people[13], people[14]], start: "09:00", note: "CityPump · 80 m + 180 m²" },
-  { id: "JOB-260827", date: 27, site: sites[3], machine: machines[4], vehicle: vehicles[0], people: [people[1], people[12]], start: "05:15", note: "Partenza da Padernello con Eurocargo" },
-  { id: "JOB-260828-A", date: 28, site: sites[4], machine: machines[15], vehicle: vehicles[1], people: [people[7], people[13], people[14]], start: "07:00", note: "CityPump · getto programmato" },
-  { id: "JOB-260828-B", date: 28, site: sites[5], machine: machines[12], vehicle: vehicles[6], people: [people[11], people[12]], start: "07:00", note: "Cantiere Cittadella" },
-  { id: "JOB-QUEUE-1", date: null, site: sites[6], machine: machines[15], vehicle: vehicles[1], people: [people[7], people[13]], start: "07:00", note: "Nota programma: getto da confermare" },
-  { id: "JOB-QUEUE-2", date: null, site: sites[11], machine: machines[6], vehicle: vehicles[6], people: [people[6], people[11]], start: "06:30", note: "Getto Boscolo · conferma richiesta" },
+  { id: "JOB-260824-A", date: 24, service: "hot", site: sites[0], machine: machines[10], vehicle: vehicles[3], people: [people[2], people[3], people[4], people[5]], start: "06:30", note: "Squadra Varna · programma cantieri" },
+  { id: "JOB-260824-B", date: 24, service: "hot", site: sites[1], machine: machines[4], vehicle: vehicles[2], people: [people[8], people[9], people[10]], start: "07:00", note: "ColaBeton · permanenza settimanale" },
+  { id: "JOB-260826", date: 26, service: "hot", site: sites[2], machine: machines[15], vehicle: vehicles[1], people: [people[7], people[13], people[14]], start: "09:00", note: "CityPump · 80 m + 180 m²" },
+  { id: "JOB-260827", date: 27, service: "semi", site: sites[3], machine: machines[4], vehicle: vehicles[0], people: [people[1]], start: "05:15", note: "Partenza da Padernello con Eurocargo" },
+  { id: "JOB-260828-A", date: 28, service: "hot", site: sites[4], machine: machines[15], vehicle: vehicles[1], people: [people[7], people[13], people[14]], start: "07:00", note: "CityPump · getto programmato" },
+  { id: "JOB-260828-B", date: 28, service: "cold", site: sites[5], machine: machines[12], vehicle: vehicles[6], people: [], start: "07:00", note: "Noleggio a freddo · nessun uomo Dalecom" },
+  { id: "JOB-QUEUE-1", date: null, service: "hot", site: sites[6], machine: machines[15], vehicle: vehicles[1], people: [people[7], people[13]], start: "07:00", note: "Nota programma: getto da confermare" },
+  { id: "JOB-QUEUE-2", date: null, service: "cold", site: sites[11], machine: machines[6], vehicle: vehicles[6], people: [], start: "06:30", note: "Getto Boscolo · noleggio a freddo" },
 ];
 
 const weekDays = ["LUN", "MAR", "MER", "GIO", "VEN", "SAB", "DOM"];
@@ -71,7 +73,9 @@ function conflictsFor(assignments: Assignment[]) {
     dated.slice(index + 1).forEach((other) => {
       if (item.date !== other.date) return;
       const sharedPerson = item.people.some((person) => other.people.includes(person));
-      if (item.machine === other.machine || item.vehicle === other.vehicle || sharedPerson) {
+      const sharedMachine = item.machine !== "Macchina da assegnare" && item.machine === other.machine;
+      const sharedVehicle = item.vehicle !== "Mezzo da assegnare" && item.vehicle === other.vehicle;
+      if (sharedMachine || sharedVehicle || sharedPerson) {
         conflicts.add(item.id);
         conflicts.add(other.id);
       }
@@ -84,11 +88,21 @@ function resourcePayload(type: ResourceType, value: string) {
   return `resource|${type}|${encodeURIComponent(value)}`;
 }
 
+function calendarResourcePayload(id: string, type: ResourceType, value: string) {
+  return `calendar|${encodeURIComponent(id)}|${type}|${encodeURIComponent(value)}`;
+}
+
 function readPayload(raw: string) {
   if (raw.startsWith("assignment|")) return { kind: "assignment" as const, id: raw.slice(11) };
   const [kind, type, encoded] = raw.split("|");
   if (kind === "resource" && encoded && ["site", "machine", "vehicle", "person"].includes(type)) {
     return { kind: "resource" as const, type: type as ResourceType, value: decodeURIComponent(encoded) };
+  }
+  if (kind === "calendar") {
+    const [, encodedId, calendarType, encodedValue] = raw.split("|");
+    if (encodedId && encodedValue && ["site", "machine", "vehicle", "person"].includes(calendarType)) {
+      return { kind: "calendar" as const, id: decodeURIComponent(encodedId), type: calendarType as ResourceType, value: decodeURIComponent(encodedValue) };
+    }
   }
   return null;
 }
@@ -105,10 +119,13 @@ function ResourceItem({ type, item }: { type: ResourceType; item: Resource }) {
 }
 
 function JobCard({ item, selected, conflict, onSelect, onResourceDrop }: { item: Assignment; selected: boolean; conflict: boolean; onSelect: () => void; onResourceDrop: (type: ResourceType, value: string) => void }) {
-  return <button
-    type="button"
-    draggable
-    onDragStart={(event) => event.dataTransfer.setData("text/plain", `assignment|${item.id}`)}
+  const modeLabel = { cold: "A FREDDO", semi: "SEMIFREDDO", hot: "A CALDO" }[item.service];
+  const draggableRow = (type: ResourceType, value: string, label: string) => <small
+    className={flowStyles.calendarResource}
+    draggable={value !== "Macchina da assegnare" && value !== "Mezzo da assegnare"}
+    onDragStart={(event) => { event.stopPropagation(); event.dataTransfer.setData("text/plain", calendarResourcePayload(item.id, type, value)); }}
+  ><b>{label}</b>{value}<em>↩</em></small>;
+  return <article
     onDragOver={(event) => event.preventDefault()}
     onDrop={(event) => {
       event.preventDefault();
@@ -117,15 +134,18 @@ function JobCard({ item, selected, conflict, onSelect, onResourceDrop }: { item:
       if (payload?.kind === "resource") onResourceDrop(payload.type, payload.value);
     }}
     onClick={onSelect}
+    onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") onSelect(); }}
     className={`${styles.job} ${selected ? styles.selected : ""} ${conflict ? styles.conflict : ""}`}
     aria-label={`${item.site}, trascina per ripianificare`}
+    role="button"
+    tabIndex={0}
   >
-    <span className={styles.jobTime}>{item.start}<i>{conflict ? "CONFLITTO" : item.id.replace("JOB-", "#")}</i></span>
-    <strong>{item.site}</strong>
-    <small><b>M</b>{item.machine}</small>
-    <small><b>V</b>{item.vehicle}</small>
-    <small><b>U</b>{item.people.join(" · ")}</small>
-  </button>;
+    <span className={`${styles.jobTime} ${flowStyles.cardHead}`} draggable onDragStart={(event) => { event.stopPropagation(); event.dataTransfer.setData("text/plain", `assignment|${item.id}`); }}><span>{item.start}<i className={flowStyles.dragHandle}>⠿</i></span><i>{conflict ? "CONFLITTO" : modeLabel}</i></span>
+    {draggableRow("site", item.site, "C")}
+    {draggableRow("machine", item.machine, "M")}
+    {draggableRow("vehicle", item.vehicle, "V")}
+    {item.service === "cold" ? <small className={flowStyles.coldRow}><b>U</b>Nessun uomo · noleggio a freddo</small> : item.people.map((person) => <span key={person}>{draggableRow("person", person, "U")}</span>)}
+  </article>;
 }
 
 export default function LogisticsPage() {
@@ -133,9 +153,11 @@ export default function LogisticsPage() {
   const [selectedId, setSelectedId] = useState(initialAssignments[0].id);
   const [saved, setSaved] = useState(false);
   const [search, setSearch] = useState("");
+  const [phase, setPhase] = useState<"sites" | "assets" | "people">("sites");
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
-    const stored = window.localStorage.getItem("dalecom-logistics-demo-v2");
+    const stored = window.localStorage.getItem("dalecom-logistics-demo-v3");
     if (stored) {
       try {
         const restored = JSON.parse(stored) as Assignment[];
@@ -148,6 +170,7 @@ export default function LogisticsPage() {
   const conflicts = useMemo(() => conflictsFor(assignments), [assignments]);
   const selected = assignments.find((item) => item.id === selectedId) || assignments[0];
   const selectedUnavailable = machineResources.some((item) => item.value === selected.machine && item.status === "service") || vehicleResources.some((item) => item.value === selected.vehicle && item.status === "service");
+  const selectedIncomplete = selected.machine === "Macchina da assegnare" || selected.vehicle === "Mezzo da assegnare" || (selected.service !== "cold" && selected.people.length === 0);
   const scheduled = assignments.filter((item) => item.date !== null).length;
   const queue = assignments.filter((item) => item.date === null);
   const busyPeople = new Set(assignments.filter((item) => item.date !== null).flatMap((item) => item.people)).size;
@@ -164,6 +187,12 @@ export default function LogisticsPage() {
   };
 
   const assignResource = (id: string, type: ResourceType, value: string) => {
+    const target = assignments.find((item) => item.id === id);
+    if (type === "person" && target?.service === "cold") {
+      setNotice("Noleggio a freddo: non è previsto personale Dalecom.");
+      window.setTimeout(() => setNotice(""), 2600);
+      return;
+    }
     setAssignments((current) => current.map((item) => {
       if (item.id !== id) return item;
       if (type === "person") return { ...item, people: item.people.includes(value) ? item.people : [...item.people, value] };
@@ -175,6 +204,26 @@ export default function LogisticsPage() {
     setSaved(false);
   };
 
+  const returnToPool = (raw: string, targetType: ResourceType) => {
+    const payload = readPayload(raw);
+    if (payload?.kind !== "calendar" || payload.type !== targetType) return;
+    if (targetType === "site") {
+      move(payload.id, null);
+      setNotice("Cantiere rimosso dal calendario e riportato tra quelli da pianificare.");
+    } else {
+      setAssignments((current) => current.map((item) => {
+        if (item.id !== payload.id) return item;
+        if (targetType === "machine") return { ...item, machine: "Macchina da assegnare" };
+        if (targetType === "vehicle") return { ...item, vehicle: "Mezzo da assegnare" };
+        return { ...item, people: item.people.filter((person) => person !== payload.value) };
+      }));
+      setSelectedId(payload.id);
+      setSaved(false);
+      setNotice(`${payload.value} è tornato disponibile nella colonna.`);
+    }
+    window.setTimeout(() => setNotice(""), 2600);
+  };
+
   const dropOnDay = (raw: string, date: number) => {
     const payload = readPayload(raw);
     if (!payload) return;
@@ -182,14 +231,20 @@ export default function LogisticsPage() {
       move(payload.id, date);
       return;
     }
+    if (payload.kind !== "resource" || payload.type !== "site") {
+      setNotice("Prima trascina un cantiere sul giorno; poi assegna mezzi e uomini alla sua scheda.");
+      window.setTimeout(() => setNotice(""), 2800);
+      return;
+    }
     const id = `JOB-DRAFT-${date}-${assignments.length + 1}`;
     const draft: Assignment = {
       id,
       date,
-      site: payload.type === "site" ? payload.value : "Padernello · Capannone",
-      machine: payload.type === "machine" ? payload.value : machines[0],
-      vehicle: payload.type === "vehicle" ? payload.value : vehicles[0],
-      people: [payload.type === "person" ? payload.value : people[0]],
+      service: "hot",
+      site: payload.value,
+      machine: "Macchina da assegnare",
+      vehicle: "Mezzo da assegnare",
+      people: [],
       start: "07:00",
       note: "Nuova commessa creata dal calendario",
     };
@@ -199,18 +254,17 @@ export default function LogisticsPage() {
   };
 
   const save = () => {
-    window.localStorage.setItem("dalecom-logistics-demo-v2", JSON.stringify(assignments));
+    window.localStorage.setItem("dalecom-logistics-demo-v3", JSON.stringify(assignments));
     setSaved(true);
     window.setTimeout(() => setSaved(false), 2200);
   };
 
   const calendarCells = Array.from({ length: blanksBeforeMonth + monthDays }, (_, index) => index < blanksBeforeMonth ? null : index - blanksBeforeMonth + 1);
-  const resourceGroups: { type: ResourceType; label: string; items: Resource[] }[] = [
-    { type: "site", label: "Cantieri", items: siteResources },
-    { type: "machine", label: "Macchine", items: machineResources },
-    { type: "vehicle", label: "Mezzi", items: vehicleResources },
-    { type: "person", label: "Persone", items: peopleResources },
-  ];
+  const resourceGroups: { type: ResourceType; label: string; items: Resource[] }[] = phase === "sites"
+    ? [{ type: "site", label: "Cantieri", items: siteResources }]
+    : phase === "assets"
+      ? [{ type: "machine", label: "Macchine", items: machineResources }, { type: "vehicle", label: "Mezzi", items: vehicleResources }]
+      : [{ type: "person", label: "Uomini", items: peopleResources }];
   const query = search.trim().toLocaleLowerCase("it");
 
   return <main className={styles.page}>
@@ -230,6 +284,7 @@ export default function LogisticsPage() {
       <article><small>PERSONE IMPEGNATE</small><b>{busyPeople}</b><span>su {people.length} disponibili</span></article>
       <article className={conflicts.size ? styles.alertKpi : ""}><small>CONFLITTI APERTI</small><b>{conflicts.size}</b><span>{conflicts.size ? "da risolvere" : "piano coerente"}</span></article>
     </section>
+    {notice ? <div className={flowStyles.notice} role="status">{notice}</div> : null}
 
     <section className={`${styles.workspace} ${palette.workspace}`}>
       <aside className={`${styles.queue} ${palette.bank}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => {
@@ -238,10 +293,12 @@ export default function LogisticsPage() {
       }}>
         <header><small>MAGAZZINO OPERATIVO</small><b>Tutto ciò che puoi assegnare</b><span>Trascina sul giorno o sulla scheda</span></header>
         <div className={palette.search}><span>⌕</span><input aria-label="Cerca risorsa" placeholder="Cerca tutto…" value={search} onChange={(event) => setSearch(event.target.value)} /></div>
-        <section className={palette.waiting}><div className={palette.groupTitle}><b>Commesse in attesa</b><span>{queue.length}</span></div><div className={styles.queueList}>{queue.map((item) => <JobCard key={item.id} item={item} selected={selected.id === item.id} conflict={false} onSelect={() => setSelectedId(item.id)} onResourceDrop={(type, value) => assignResource(item.id, type, value)} />)}</div></section>
+        <div className={flowStyles.steps} aria-label="Sequenza di pianificazione"><button className={phase === "sites" ? flowStyles.activeStep : ""} onClick={() => setPhase("sites")}><i>1</i>Cantieri</button><button className={phase === "assets" ? flowStyles.activeStep : ""} onClick={() => setPhase("assets")}><i>2</i>Mezzi</button><button className={phase === "people" ? flowStyles.activeStep : ""} onClick={() => setPhase("people")}><i>3</i>Uomini</button></div>
+        {phase === "sites" ? <section className={palette.waiting}><div className={palette.groupTitle}><b>Cantieri da pianificare</b><span>{queue.length}</span></div><div className={styles.queueList}>{queue.map((item) => <JobCard key={item.id} item={item} selected={selected.id === item.id} conflict={false} onSelect={() => setSelectedId(item.id)} onResourceDrop={(type, value) => assignResource(item.id, type, value)} />)}</div></section> : null}
+        {phase === "people" && selected.service === "cold" ? <div className={flowStyles.coldNotice}><b>Noleggio a freddo</b><span>Per la commessa selezionata non devi assegnare uomini.</span></div> : null}
         <div className={palette.resourceSections}>{resourceGroups.map((group) => {
           const visible = group.items.filter((item) => !query || `${item.value} ${item.note || ""}`.toLocaleLowerCase("it").includes(query));
-          return <section className={palette.resourceGroup} key={group.type}><div className={palette.groupTitle}><b>{group.label}</b><span>{visible.length}</span></div><div>{visible.map((item) => <ResourceItem type={group.type} item={item} key={item.value} />)}</div></section>;
+          return <section className={palette.resourceGroup} key={group.type} onDragOver={(event) => event.preventDefault()} onDrop={(event) => returnToPool(event.dataTransfer.getData("text/plain"), group.type)}><div className={palette.groupTitle}><b>{group.label}</b><span>{visible.length}</span></div><div className={flowStyles.dropHint}>↩ Trascina qui dal calendario per liberare la risorsa</div><div>{visible.map((item) => <ResourceItem type={group.type} item={item} key={item.value} />)}</div></section>;
         })}</div>
       </aside>
 
@@ -263,14 +320,14 @@ export default function LogisticsPage() {
 
       <aside className={styles.inspector}>
         <header><small>DETTAGLIO COMMESSA</small><b>{selected.id}</b><span>{selected.date ? `${selected.date} agosto 2026` : "Non pianificata"}</span></header>
+        <label><span>Formula di noleggio</span><select value={selected.service} onChange={(event) => { const service = event.target.value as Assignment["service"]; updateSelected({ service, people: service === "cold" ? [] : selected.people }); }}><option value="cold">A freddo · nessun uomo</option><option value="semi">Semifreddo</option><option value="hot">A caldo</option></select></label>
         <label><span><i>C</i>Cantiere</span><select value={selected.site} onChange={(event) => updateSelected({ site: event.target.value })}>{[...sites, "Venezia · Boscolo"].map((value) => <option key={value}>{value}</option>)}</select></label>
-        <label><span><i>M</i>Macchina</span><select value={selected.machine} onChange={(event) => updateSelected({ machine: event.target.value })}>{machineResources.map((item) => <option key={item.value} value={item.value} disabled={item.status === "service"}>{item.value}{item.status === "service" ? " · NON DISPONIBILE" : ""}</option>)}</select></label>
-        <label><span><i>V</i>Mezzo</span><select value={selected.vehicle} onChange={(event) => updateSelected({ vehicle: event.target.value })}>{vehicleResources.map((item) => <option key={item.value} value={item.value} disabled={item.status === "service"}>{item.value}{item.status === "service" ? " · DA RISOLVERE" : ""}</option>)}</select></label>
-        <label><span><i>U</i>Squadra</span><select value={selected.people[0]} onChange={(event) => updateSelected({ people: [event.target.value, ...selected.people.slice(1)] })}>{people.map((value) => <option key={value}>{value}</option>)}</select></label>
-        <label><span>Secondo uomo</span><select value={selected.people[1] || ""} onChange={(event) => updateSelected({ people: event.target.value ? [selected.people[0], event.target.value, ...selected.people.slice(2)] : [selected.people[0]] })}><option value="">Non previsto</option>{people.filter((person) => person !== selected.people[0]).map((value) => <option key={value}>{value}</option>)}</select></label>
+        <label><span><i>M</i>Macchina</span><select value={selected.machine} onChange={(event) => updateSelected({ machine: event.target.value })}><option>Macchina da assegnare</option>{machineResources.map((item) => <option key={item.value} value={item.value} disabled={item.status === "service"}>{item.value}{item.status === "service" ? " · NON DISPONIBILE" : ""}</option>)}</select></label>
+        <label><span><i>V</i>Mezzo</span><select value={selected.vehicle} onChange={(event) => updateSelected({ vehicle: event.target.value })}><option>Mezzo da assegnare</option>{vehicleResources.filter((item) => item.value !== "Mezzo da assegnare").map((item) => <option key={item.value} value={item.value} disabled={item.status === "service"}>{item.value}{item.status === "service" ? " · DA RISOLVERE" : ""}</option>)}</select></label>
+        {selected.service === "cold" ? <div className={flowStyles.noPeople}><b>U · NESSUN UOMO</b><span>Regola automatica del noleggio a freddo.</span></div> : <><label><span><i>U</i>Primo uomo</span><select value={selected.people[0] || ""} onChange={(event) => updateSelected({ people: event.target.value ? [event.target.value, ...selected.people.slice(1)] : selected.people.slice(1) })}><option value="">Da assegnare</option>{people.map((value) => <option key={value}>{value}</option>)}</select></label><label><span>Secondo uomo</span><select value={selected.people[1] || ""} onChange={(event) => updateSelected({ people: event.target.value ? [selected.people[0], event.target.value, ...selected.people.slice(2)].filter(Boolean) : selected.people.filter((_, index) => index !== 1) })}><option value="">Non previsto</option>{people.filter((person) => person !== selected.people[0]).map((value) => <option key={value}>{value}</option>)}</select></label></>}
         <div className={styles.detailGrid}><label><span>Inizio</span><input type="time" value={selected.start} onChange={(event) => updateSelected({ start: event.target.value })} /></label><label><span>Giorno</span><input type="number" min="1" max="31" value={selected.date || ""} onChange={(event) => updateSelected({ date: event.target.value ? Number(event.target.value) : null })} /></label></div>
         <label><span>Nota operativa</span><textarea value={selected.note} onChange={(event) => updateSelected({ note: event.target.value })} /></label>
-        <div className={`${styles.check} ${conflicts.has(selected.id) || selectedUnavailable ? styles.checkError : ""}`}><i>{conflicts.has(selected.id) || selectedUnavailable ? "!" : "✓"}</i><div><b>{selectedUnavailable ? "Configurazione incompleta" : conflicts.has(selected.id) ? "Risorsa già impegnata" : "Configurazione disponibile"}</b><span>{selectedUnavailable ? "Sostituisci l’elemento non disponibile o ancora da assegnare." : conflicts.has(selected.id) ? "Sposta la commessa o sostituisci la risorsa." : "Nessuna sovrapposizione nella giornata selezionata."}</span></div></div>
+        <div className={`${styles.check} ${conflicts.has(selected.id) || selectedUnavailable || selectedIncomplete ? styles.checkError : ""}`}><i>{conflicts.has(selected.id) || selectedUnavailable || selectedIncomplete ? "!" : "✓"}</i><div><b>{selectedUnavailable || selectedIncomplete ? "Configurazione incompleta" : conflicts.has(selected.id) ? "Risorsa già impegnata" : "Configurazione disponibile"}</b><span>{selectedUnavailable || selectedIncomplete ? "Completa macchina, mezzo e — salvo il freddo — la squadra." : conflicts.has(selected.id) ? "Sposta la commessa o sostituisci la risorsa." : "Nessuna sovrapposizione nella giornata selezionata."}</span></div></div>
         <button className={styles.unschedule} onClick={() => move(selected.id, null)}>Rimetti tra le commesse in attesa</button>
       </aside>
     </section>
