@@ -1,0 +1,6 @@
+.gridSix{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+.compact{min-height:245px!important}
+.red{--accent:#ff6464}
+
+@media(max-width:800px){.gridSix{grid-template-columns:1fr 1fr!important}}
+@media(max-width:650px){.gridSix{grid-template-columns:1fr!important}}

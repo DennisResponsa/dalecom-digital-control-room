@@ -1,4 +1,5 @@
 import styles from "./page.module.css";
+import sixStyles from "./six.module.css";
 
 const dalecomPublicUrl = "https://dalecom-preventivo-immediato.denniscumerlato.chatgpt.site";
 
@@ -48,6 +49,15 @@ const tools = [
     href: "/organizzazione",
     accent: "yellow",
   },
+  {
+    number: "06",
+    eyebrow: "LOGISTICA",
+    title: "Logista",
+    description: "Calendario mensile drag & drop per coordinare cantieri, macchine, mezzi e squadre.",
+    action: "Apri la pianificazione",
+    href: "/logistica",
+    accent: "red",
+  },
 ] as const;
 
 export default function DemoControlRoom() {
@@ -70,10 +80,10 @@ export default function DemoControlRoom() {
         <p>La richiesta entra, il lavoro si organizza e la direzione vede ciò che accade. In tempo reale.</p>
       </section>
 
-      <section className={styles.grid} aria-label="Strumenti della demo Dalecom">
+      <section className={`${styles.grid} ${sixStyles.gridSix}`} aria-label="Strumenti della demo Dalecom">
         {tools.map((tool) => (
           <a
-            className={`${styles.card} ${styles[tool.accent]}`}
+            className={`${styles.card} ${sixStyles.compact} ${styles[tool.accent] || sixStyles.red}`}
             href={tool.href}
             target="_blank"
             rel="noreferrer"
