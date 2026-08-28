@@ -21,6 +21,8 @@ type Assignment = {
 
 type ResourceType = "site" | "machine" | "vehicle" | "person";
 type Resource = { value: string; status?: "available" | "busy" | "service"; note?: string };
+type CalendarView = "month" | "week" | "day";
+type CalendarCell = { day: number; month: number } | null;
 
 const machineResources: Resource[] = [
   { value: "PCA BM30 #116 · Padernello", status: "available" },
@@ -72,6 +74,9 @@ const calendarMonths = [
   { number: 10, label: "OTTOBRE", days: 31, blanks: 3 },
 ] as const;
 const monthName = (month: number | null) => calendarMonths.find((item) => item.number === month)?.label.toLocaleLowerCase("it") || "";
+const calendarDate = (month: number, day: number) => new Date(2026, month - 1, day, 12);
+const mondayIndex = (date: Date) => (date.getDay() + 6) % 7;
+const isInsidePlanningRange = (date: Date) => date >= calendarDate(8, 1) && date <= calendarDate(10, 31);
 
 function conflictsFor(assignments: Assignment[]) {
   const conflicts = new Set<string>();
@@ -162,6 +167,8 @@ export default function LogisticsPage() {
   const [phase, setPhase] = useState<"sites" | "assets" | "people">("sites");
   const [notice, setNotice] = useState("");
   const [currentMonth, setCurrentMonth] = useState(8);
+  const [focusDay, setFocusDay] = useState(24);
+  const [calendarView, setCalendarView] = useState<CalendarView>("month");
 
   useEffect(() => {
     const stored = window.localStorage.getItem("dalecom-logistics-demo-v3");
@@ -231,11 +238,11 @@ export default function LogisticsPage() {
     window.setTimeout(() => setNotice(""), 2600);
   };
 
-  const dropOnDay = (raw: string, date: number) => {
+  const dropOnDay = (raw: string, date: number, month: number) => {
     const payload = readPayload(raw);
     if (!payload) return;
     if (payload.kind === "assignment") {
-      move(payload.id, date, currentMonth);
+      move(payload.id, date, month);
       return;
     }
     if (payload.kind !== "resource" || payload.type !== "site") {
@@ -243,11 +250,11 @@ export default function LogisticsPage() {
       window.setTimeout(() => setNotice(""), 2800);
       return;
     }
-    const id = `JOB-DRAFT-${date}-${assignments.length + 1}`;
+    const id = `JOB-DRAFT-${month}${String(date).padStart(2, "0")}-${assignments.length + 1}`;
     const draft: Assignment = {
       id,
       date,
-      month: currentMonth,
+      month,
       service: "hot",
       site: payload.value,
       machine: "Macchina da assegnare",
@@ -268,12 +275,40 @@ export default function LogisticsPage() {
   };
 
   const activeMonth = calendarMonths.find((item) => item.number === currentMonth) || calendarMonths[0];
-  const calendarCells = Array.from({ length: activeMonth.blanks + activeMonth.days }, (_, index) => index < activeMonth.blanks ? null : index - activeMonth.blanks + 1);
+  const focusDate = calendarDate(currentMonth, Math.min(focusDay, activeMonth.days));
+  const monthCells: CalendarCell[] = Array.from({ length: activeMonth.blanks + activeMonth.days }, (_, index) => index < activeMonth.blanks ? null : { day: index - activeMonth.blanks + 1, month: currentMonth });
+  const weekStart = new Date(focusDate);
+  weekStart.setDate(focusDate.getDate() - mondayIndex(focusDate));
+  const weekCells: CalendarCell[] = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(weekStart);
+    date.setDate(weekStart.getDate() + index);
+    return isInsidePlanningRange(date) ? { day: date.getDate(), month: date.getMonth() + 1 } : null;
+  });
+  const calendarCells = calendarView === "month" ? monthCells : calendarView === "week" ? weekCells : [{ day: focusDate.getDate(), month: focusDate.getMonth() + 1 }];
+  const visibleWeekDays = calendarView === "day" ? [weekDays[mondayIndex(focusDate)]] : weekDays;
+  const toolbarLabel = calendarView === "month"
+    ? `${activeMonth.label} 2026`
+    : calendarView === "day"
+      ? `${focusDate.getDate()} ${monthName(focusDate.getMonth() + 1).toLocaleUpperCase("it")} 2026`
+      : `${weekCells.find(Boolean)?.day || ""} ${monthName(weekCells.find(Boolean)?.month || currentMonth)} — ${[...weekCells].reverse().find(Boolean)?.day || ""} ${monthName([...weekCells].reverse().find(Boolean)?.month || currentMonth)} 2026`.toLocaleUpperCase("it");
   const changeMonth = (direction: -1 | 1) => {
     const index = calendarMonths.findIndex((item) => item.number === currentMonth);
     const next = calendarMonths[index + direction];
-    if (next) setCurrentMonth(next.number);
+    if (next) {
+      setCurrentMonth(next.number);
+      setFocusDay(1);
+    }
   };
+  const moveFocus = (direction: -1 | 1) => {
+    if (calendarView === "month") return changeMonth(direction);
+    const next = new Date(focusDate);
+    next.setDate(focusDate.getDate() + direction * (calendarView === "week" ? 7 : 1));
+    if (!isInsidePlanningRange(next)) return;
+    setCurrentMonth(next.getMonth() + 1);
+    setFocusDay(next.getDate());
+  };
+  const previousDisabled = calendarView === "month" ? currentMonth === 8 : (calendarView === "day" ? focusDate <= calendarDate(8, 1) : weekStart <= calendarDate(8, 1));
+  const nextDisabled = calendarView === "month" ? currentMonth === 10 : (calendarView === "day" ? focusDate >= calendarDate(10, 31) : (weekCells.filter(Boolean).at(-1)?.month === 10 && weekCells.filter(Boolean).at(-1)?.day === 31));
   const resourceGroups: { type: ResourceType; label: string; items: Resource[] }[] = phase === "sites"
     ? [{ type: "site", label: "Cantieri", items: siteResources }]
     : phase === "assets"
@@ -288,19 +323,19 @@ export default function LogisticsPage() {
     </header>
 
     <section className={`${styles.hero} ${theme.hero}`}>
-      <div><small>REGIA LOGISTICA · PIANIFICAZIONE MENSILE</small><h1>Quattro risorse.<br /><em>Un solo calendario.</em></h1><p>Trascina le commesse tra le giornate. Macchina, mezzo, uomini e cantiere restano collegati; le sovrapposizioni vengono segnalate subito.</p></div>
+      <div><small>REGIA LOGISTICA · CALENDARIO OPERATIVO</small><h1>Quattro risorse.<br /><em>Un solo calendario.</em></h1><p>Lavora per mese, settimana o giornata. Macchina, mezzo, uomini e cantiere restano collegati; le sovrapposizioni vengono segnalate subito.</p></div>
       <div className={`${styles.legend} ${theme.legend}`}><span><i className={styles.okDot} />Disponibile</span><span><i className={styles.warnDot} />Conflitto risorse</span><b>Agosto — ottobre 2026</b></div>
     </section>
 
     <section className={`${styles.kpis} ${theme.kpis}`}>
-      <article><small>COMMESSE PIANIFICATE</small><b>{scheduled}</b><span>nel mese</span></article>
+      <article><small>COMMESSE PIANIFICATE</small><b>{scheduled}</b><span>nel periodo</span></article>
       <article><small>DA COLLOCARE</small><b>{queue.length}</b><span>richieste in attesa</span></article>
       <article><small>PERSONE IMPEGNATE</small><b>{busyPeople}</b><span>su {people.length} disponibili</span></article>
       <article className={conflicts.size ? styles.alertKpi : ""}><small>CONFLITTI APERTI</small><b>{conflicts.size}</b><span>{conflicts.size ? "da risolvere" : "piano coerente"}</span></article>
     </section>
     {notice ? <div className={flowStyles.notice} role="status">{notice}</div> : null}
 
-    <section className={`${styles.workspace} ${palette.workspace}`}>
+    <section className={`${styles.workspace} ${palette.workspace} ${theme.workspace}`}>
       <aside className={`${styles.queue} ${palette.bank} ${theme.panel}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => {
         const payload = readPayload(event.dataTransfer.getData("text/plain"));
         if (payload?.kind === "assignment") move(payload.id, null);
@@ -317,18 +352,19 @@ export default function LogisticsPage() {
       </aside>
 
       <section className={`${styles.calendarWrap} ${theme.panel}`}>
-        <div className={theme.monthTabs}>{calendarMonths.map((month) => <button key={month.number} className={currentMonth === month.number ? theme.activeMonth : ""} onClick={() => setCurrentMonth(month.number)}>{month.label}<small>2026</small></button>)}</div>
-        <div className={`${styles.calendarToolbar} ${theme.calendarToolbar}`}><div><button aria-label="Mese precedente" disabled={currentMonth === 8} onClick={() => changeMonth(-1)}>‹</button><strong>{activeMonth.label} 2026</strong><button aria-label="Mese successivo" disabled={currentMonth === 10} onClick={() => changeMonth(1)}>›</button></div><span>Trascina cantieri e risorse per pianificare</span></div>
-        <div className={`${styles.weekHeader} ${theme.weekHeader}`}>{weekDays.map((day) => <b key={day}>{day}</b>)}</div>
-        <div className={styles.calendar}>
-          {calendarCells.map((day, index) => day === null ? <div className={styles.blank} key={`blank-${index}`} /> : <div
-            className={`${styles.day} ${theme.day} ${(index % 7) > 4 ? styles.weekend : ""}`}
-            key={day}
+        <div className={theme.monthTabs}>{calendarMonths.map((month) => <button key={month.number} className={currentMonth === month.number ? theme.activeMonth : ""} onClick={() => { setCurrentMonth(month.number); setFocusDay(1); }}>{month.label}<small>2026</small></button>)}</div>
+        <div className={theme.viewBar}><span>VISTA CALENDARIO</span><div>{(["month", "week", "day"] as CalendarView[]).map((view) => <button key={view} className={calendarView === view ? theme.activeView : ""} onClick={() => setCalendarView(view)}>{{ month: "Mensile", week: "Settimanale", day: "Giornaliera" }[view]}</button>)}</div></div>
+        <div className={`${styles.calendarToolbar} ${theme.calendarToolbar}`}><div><button aria-label="Periodo precedente" disabled={previousDisabled} onClick={() => moveFocus(-1)}>‹</button><strong>{toolbarLabel}</strong><button aria-label="Periodo successivo" disabled={nextDisabled} onClick={() => moveFocus(1)}>›</button></div><span>Trascina cantieri e risorse per pianificare</span></div>
+        <div className={`${styles.weekHeader} ${theme.weekHeader} ${calendarView === "day" ? theme.oneColumn : ""}`}>{visibleWeekDays.map((day) => <b key={day}>{day}</b>)}</div>
+        <div className={`${styles.calendar} ${calendarView === "week" ? theme.weekCalendar : ""} ${calendarView === "day" ? theme.dayCalendar : ""}`}>
+          {calendarCells.map((cell, index) => cell === null ? <div className={styles.blank} key={`blank-${index}`} /> : <div
+            className={`${styles.day} ${theme.day} ${mondayIndex(calendarDate(cell.month, cell.day)) > 4 ? styles.weekend : ""}`}
+            key={`${cell.month}-${cell.day}`}
             onDragOver={(event) => event.preventDefault()}
-            onDrop={(event) => dropOnDay(event.dataTransfer.getData("text/plain"), day)}
+            onDrop={(event) => dropOnDay(event.dataTransfer.getData("text/plain"), cell.day, cell.month)}
           >
-            <span className={styles.dayNumber}>{day}</span>
-            <div className={styles.dayJobs}>{assignments.filter((item) => item.date === day && item.month === currentMonth).map((item) => <JobCard key={item.id} item={item} selected={selected.id === item.id} conflict={conflicts.has(item.id)} onSelect={() => setSelectedId(item.id)} onResourceDrop={(type, value) => assignResource(item.id, type, value)} />)}</div>
+            <button className={`${styles.dayNumber} ${theme.dayNumber}`} onClick={() => { setCurrentMonth(cell.month); setFocusDay(cell.day); }} aria-label={`Seleziona ${cell.day} ${monthName(cell.month)}`}>{cell.day}<small>{calendarView !== "month" ? monthName(cell.month).slice(0, 3) : ""}</small></button>
+            <div className={styles.dayJobs}>{assignments.filter((item) => item.date === cell.day && item.month === cell.month).map((item) => <JobCard key={item.id} item={item} selected={selected.id === item.id} conflict={conflicts.has(item.id)} onSelect={() => setSelectedId(item.id)} onResourceDrop={(type, value) => assignResource(item.id, type, value)} />)}</div>
           </div>)}
         </div>
       </section>
@@ -336,7 +372,7 @@ export default function LogisticsPage() {
       <aside className={`${styles.inspector} ${theme.panel}`}>
         <header><small>DETTAGLIO COMMESSA</small><b>{selected.id}</b><span>{selected.date ? `${selected.date} ${monthName(selected.month)} 2026` : "Non pianificata"}</span></header>
         <label><span>Formula di noleggio</span><select value={selected.service} onChange={(event) => { const service = event.target.value as Assignment["service"]; updateSelected({ service, people: service === "cold" ? [] : selected.people }); }}><option value="cold">A freddo · nessun uomo</option><option value="semi">Semifreddo</option><option value="hot">A caldo</option></select></label>
-        <label><span><i>C</i>Cantiere</span><select value={selected.site} onChange={(event) => updateSelected({ site: event.target.value })}>{[...sites, "Venezia · Boscolo"].map((value) => <option key={value}>{value}</option>)}</select></label>
+        <label><span><i>C</i>Cantiere</span><select value={selected.site} onChange={(event) => updateSelected({ site: event.target.value })}>{sites.map((value) => <option key={value}>{value}</option>)}</select></label>
         <label><span><i>M</i>Macchina</span><select value={selected.machine} onChange={(event) => updateSelected({ machine: event.target.value })}><option>Macchina da assegnare</option>{machineResources.map((item) => <option key={item.value} value={item.value} disabled={item.status === "service"}>{item.value}{item.status === "service" ? " · NON DISPONIBILE" : ""}</option>)}</select></label>
         <label><span><i>V</i>Mezzo</span><select value={selected.vehicle} onChange={(event) => updateSelected({ vehicle: event.target.value })}><option>Mezzo da assegnare</option>{vehicleResources.filter((item) => item.value !== "Mezzo da assegnare").map((item) => <option key={item.value} value={item.value} disabled={item.status === "service"}>{item.value}{item.status === "service" ? " · DA RISOLVERE" : ""}</option>)}</select></label>
         {selected.service === "cold" ? <div className={flowStyles.noPeople}><b>U · NESSUN UOMO</b><span>Regola automatica del noleggio a freddo.</span></div> : <><label><span><i>U</i>Primo uomo</span><select value={selected.people[0] || ""} onChange={(event) => updateSelected({ people: event.target.value ? [event.target.value, ...selected.people.slice(1)] : selected.people.slice(1) })}><option value="">Da assegnare</option>{people.map((value) => <option key={value}>{value}</option>)}</select></label><label><span>Secondo uomo</span><select value={selected.people[1] || ""} onChange={(event) => updateSelected({ people: event.target.value ? [selected.people[0], event.target.value, ...selected.people.slice(2)].filter(Boolean) : selected.people.filter((_, index) => index !== 1) })}><option value="">Non previsto</option>{people.filter((person) => person !== selected.people[0]).map((value) => <option key={value}>{value}</option>)}</select></label></>}

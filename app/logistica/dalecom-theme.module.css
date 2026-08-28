@@ -60,6 +60,10 @@
   box-shadow: 0 14px 36px rgba(16, 47, 60, 0.1);
 }
 
+.workspace {
+  grid-template-columns: 280px minmax(620px, 1fr) 250px !important;
+}
+
 .monthTabs {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -105,6 +109,48 @@
   color: #ffe2d0;
 }
 
+.viewBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #d9e6e9;
+  background: #fff;
+}
+
+.viewBar > span {
+  color: #69818b;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.viewBar > div {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 9px;
+  background: #edf4f6;
+}
+
+.viewBar button {
+  appearance: none;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #607984;
+  padding: 7px 10px;
+  font: 800 8px/1 inherit;
+  cursor: pointer;
+}
+
+.viewBar .activeView {
+  background: #123845;
+  color: #fff;
+  box-shadow: 0 3px 9px rgba(18, 56, 69, 0.2);
+}
+
 .calendarToolbar {
   background: #f8fbfc;
 }
@@ -120,6 +166,43 @@
   border-top: 2px solid #f06b22;
 }
 
+.oneColumn,
+.dayCalendar {
+  grid-template-columns: 1fr !important;
+}
+
+.weekCalendar {
+  grid-auto-rows: minmax(360px, auto);
+}
+
+.dayCalendar {
+  grid-auto-rows: minmax(520px, auto);
+}
+
+.dayCalendar .day {
+  padding: 48px 18px 18px;
+}
+
+.dayCalendar .job {
+  max-width: 520px;
+  padding: 12px;
+}
+
+.dayNumber {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.dayNumber small {
+  margin-left: 3px;
+  color: #0b839f;
+  font-size: 7px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
 .day:hover {
   background: #e9f7fa;
 }
@@ -133,5 +216,16 @@
 @media (max-width: 900px) {
   .page {
     background: linear-gradient(180deg, #0f303d 0 330px, #eaf1f3 330px 100%);
+  }
+
+  .viewBar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 1250px) {
+  .workspace {
+    grid-template-columns: 280px minmax(680px, 1fr) !important;
   }
 }
