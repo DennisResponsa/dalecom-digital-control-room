@@ -1,6 +1,13 @@
 .gridSix{grid-template-columns:repeat(3,minmax(0,1fr))!important}
 .compact{min-height:245px!important}
 .red{--accent:#ff6464}
+.disabledCard{--accent:#7f929a!important;background:linear-gradient(150deg,#a8b3b713,#7d8c9210)!important;border-color:#aab7bc22!important;color:#9caeb5!important;cursor:default;filter:saturate(.18);box-shadow:inset 0 1px 0 #ffffff08!important}
+.disabledCard:before{opacity:.08!important}
+.disabledCard:after{opacity:.32!important}
+.disabledCard:hover{transform:none!important;border-color:#aab7bc22!important;box-shadow:inset 0 1px 0 #ffffff08!important}
+.disabledCard h2{color:#a9b7bd!important}
+.disabledCard p,.disabledCard small{color:#748b94!important}
+.disabledCard span{color:#8799a0!important}
 
 @media(max-width:800px){.gridSix{grid-template-columns:1fr 1fr!important}}
 @media(max-width:650px){.gridSix{grid-template-columns:1fr!important}}

@@ -12,6 +12,7 @@ const tools = [
     action: "Apri il preventivatore",
     href: `${dalecomPublicUrl}/`,
     accent: "orange",
+    disabled: false,
   },
   {
     number: "02",
@@ -21,6 +22,7 @@ const tools = [
     action: "Apri la flotta",
     href: `${dalecomPublicUrl}/flotta`,
     accent: "cyan",
+    disabled: false,
   },
   {
     number: "03",
@@ -30,6 +32,7 @@ const tools = [
     action: "Apri la demo operativa",
     href: "/dipendenti",
     accent: "green",
+    disabled: false,
   },
   {
     number: "04",
@@ -39,6 +42,7 @@ const tools = [
     action: "Apri la dashboard",
     href: "/governance",
     accent: "violet",
+    disabled: false,
   },
   {
     number: "05",
@@ -48,6 +52,7 @@ const tools = [
     action: "Apri l’organizzazione",
     href: "/organizzazione",
     accent: "yellow",
+    disabled: false,
   },
   {
     number: "06",
@@ -57,8 +62,79 @@ const tools = [
     action: "Apri la pianificazione",
     href: "/logistica",
     accent: "red",
+    disabled: false,
+  },
+  {
+    number: "07",
+    eyebrow: "PERSONALE",
+    title: "Busta paga",
+    description: "Presenze, trasferte, indennità e dati economici del personale collegati alle commesse.",
+    action: "",
+    href: "",
+    accent: "disabled",
+    disabled: true,
+  },
+  {
+    number: "08",
+    eyebrow: "SICUREZZA",
+    title: "Sicurezza e formazione",
+    description: "Corsi, idoneità, DPI, patentini e scadenze per assegnare soltanto personale conforme.",
+    action: "",
+    href: "",
+    accent: "disabled",
+    disabled: true,
+  },
+  {
+    number: "09",
+    eyebrow: "OFFICINA",
+    title: "Officina e manutenzioni",
+    description: "Guasti, ordini di lavoro, ricambi e manutenzioni programmate per ogni macchina e mezzo.",
+    action: "",
+    href: "",
+    accent: "disabled",
+    disabled: true,
+  },
+  {
+    number: "10",
+    eyebrow: "LOGISTICA",
+    title: "Ottimizzazione",
+    description: "Ottimizzazioni automatiche per l’assegnazione di uomini, mezzi e macchine che ottimizzano la logistica.",
+    action: "",
+    href: "",
+    accent: "disabled",
+    disabled: true,
+  },
+  {
+    number: "11",
+    eyebrow: "COMPLIANCE",
+    title: "Legal",
+    description: "Verifica normativa, controllo dei contratti e individuazione automatica delle non conformità.",
+    action: "",
+    href: "",
+    accent: "disabled",
+    disabled: true,
   },
 ] as const;
+
+function ToolCard({ tool }: { tool: (typeof tools)[number] }) {
+  const content = <>
+    <div className={styles.cardTop}>
+      <span>{tool.number}</span>
+      <small>{tool.eyebrow}</small>
+    </div>
+    <div>
+      <h2>{tool.title}</h2>
+      <p>{tool.description}</p>
+    </div>
+    {tool.disabled ? null : <strong>{tool.action}<b>↗</b></strong>}
+  </>;
+
+  if (tool.disabled) {
+    return <article className={`${styles.card} ${sixStyles.compact} ${sixStyles.disabledCard}`}>{content}</article>;
+  }
+
+  return <a className={`${styles.card} ${sixStyles.compact} ${styles[tool.accent] || sixStyles.red}`} href={tool.href} target="_blank" rel="noreferrer">{content}</a>;
+}
 
 export default function DemoControlRoom() {
   return (
@@ -81,25 +157,7 @@ export default function DemoControlRoom() {
       </section>
 
       <section className={`${styles.grid} ${sixStyles.gridSix}`} aria-label="Strumenti della demo Dalecom">
-        {tools.map((tool) => (
-          <a
-            className={`${styles.card} ${sixStyles.compact} ${styles[tool.accent] || sixStyles.red}`}
-            href={tool.href}
-            target="_blank"
-            rel="noreferrer"
-            key={tool.number}
-          >
-            <div className={styles.cardTop}>
-              <span>{tool.number}</span>
-              <small>{tool.eyebrow}</small>
-            </div>
-            <div>
-              <h2>{tool.title}</h2>
-              <p>{tool.description}</p>
-            </div>
-            <strong>{tool.action}<b>↗</b></strong>
-          </a>
-        ))}
+        {tools.map((tool) => <ToolCard tool={tool} key={tool.number} />)}
       </section>
 
       <section className={styles.flow} aria-label="Flusso della dimostrazione">
