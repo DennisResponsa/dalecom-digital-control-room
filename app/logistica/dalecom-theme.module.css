@@ -1,0 +1,137 @@
+.page {
+  background: linear-gradient(180deg, #0f303d 0 250px, #eaf1f3 250px 100%);
+}
+
+.top {
+  border-bottom-color: rgba(255, 255, 255, 0.15);
+}
+
+.brand b {
+  color: #fff;
+}
+
+.brand span {
+  color: #70c8dc;
+  border-left-color: rgba(255, 255, 255, 0.22);
+}
+
+.top nav a,
+.top nav button {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e7f3f6;
+}
+
+.top nav button {
+  background: #f06b22;
+  border-color: #f06b22;
+  color: #fff;
+}
+
+.hero small {
+  color: #71cadd;
+}
+
+.hero h1 {
+  color: #fff;
+}
+
+.hero p {
+  color: #bfd1d7;
+}
+
+.legend {
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.kpis article {
+  padding-top: 11px;
+  border-top: 3px solid #0d8eaa;
+  box-shadow: 0 10px 25px rgba(11, 39, 52, 0.08);
+}
+
+.kpis article:last-child {
+  border-top-color: #f06b22;
+}
+
+.panel {
+  border-color: #cbdcdf;
+  box-shadow: 0 14px 36px rgba(16, 47, 60, 0.1);
+}
+
+.monthTabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 8px;
+  background: #123845;
+}
+
+.monthTabs button {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #9fc3ce;
+  padding: 9px 6px;
+  font: 900 9px/1 inherit;
+  letter-spacing: 0.09em;
+  cursor: pointer;
+  transition: 0.15s;
+}
+
+.monthTabs button small {
+  display: block;
+  margin-top: 4px;
+  color: #779aa5;
+  font-size: 7px;
+  letter-spacing: 0.05em;
+}
+
+.monthTabs button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.monthTabs .activeMonth {
+  background: #f06b22;
+  border-color: #f06b22;
+  color: #fff;
+  box-shadow: 0 5px 14px rgba(7, 28, 36, 0.45);
+}
+
+.monthTabs .activeMonth small {
+  color: #ffe2d0;
+}
+
+.calendarToolbar {
+  background: #f8fbfc;
+}
+
+.calendarToolbar button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.weekHeader {
+  height: 31px;
+  background: #e8f3f5;
+  border-top: 2px solid #f06b22;
+}
+
+.day:hover {
+  background: #e9f7fa;
+}
+
+.job {
+  border-left-width: 4px;
+  background: linear-gradient(135deg, #f5fcfd, #eaf7fa);
+  box-shadow: 0 4px 10px rgba(23, 48, 61, 0.07);
+}
+
+@media (max-width: 900px) {
+  .page {
+    background: linear-gradient(180deg, #0f303d 0 330px, #eaf1f3 330px 100%);
+  }
+}

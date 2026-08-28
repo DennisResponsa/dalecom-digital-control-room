@@ -4,10 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import styles from "./page.module.css";
 import palette from "./palette.module.css";
 import flowStyles from "./workflow.module.css";
+import theme from "./dalecom-theme.module.css";
 
 type Assignment = {
   id: string;
   date: number | null;
+  month: number | null;
   service: "cold" | "semi" | "hot";
   site: string;
   machine: string;
@@ -53,25 +55,29 @@ const people = peopleResources.map((item) => item.value);
 const sites = siteResources.map((item) => item.value);
 
 const initialAssignments: Assignment[] = [
-  { id: "JOB-260824-A", date: 24, service: "hot", site: sites[0], machine: machines[10], vehicle: vehicles[3], people: [people[2], people[3], people[4], people[5]], start: "06:30", note: "Squadra Varna · programma cantieri" },
-  { id: "JOB-260824-B", date: 24, service: "hot", site: sites[1], machine: machines[4], vehicle: vehicles[2], people: [people[8], people[9], people[10]], start: "07:00", note: "ColaBeton · permanenza settimanale" },
-  { id: "JOB-260826", date: 26, service: "hot", site: sites[2], machine: machines[15], vehicle: vehicles[1], people: [people[7], people[13], people[14]], start: "09:00", note: "CityPump · 80 m + 180 m²" },
-  { id: "JOB-260827", date: 27, service: "semi", site: sites[3], machine: machines[4], vehicle: vehicles[0], people: [people[1]], start: "05:15", note: "Partenza da Padernello con Eurocargo" },
-  { id: "JOB-260828-A", date: 28, service: "hot", site: sites[4], machine: machines[15], vehicle: vehicles[1], people: [people[7], people[13], people[14]], start: "07:00", note: "CityPump · getto programmato" },
-  { id: "JOB-260828-B", date: 28, service: "cold", site: sites[5], machine: machines[12], vehicle: vehicles[6], people: [], start: "07:00", note: "Noleggio a freddo · nessun uomo Dalecom" },
-  { id: "JOB-QUEUE-1", date: null, service: "hot", site: sites[6], machine: machines[15], vehicle: vehicles[1], people: [people[7], people[13]], start: "07:00", note: "Nota programma: getto da confermare" },
-  { id: "JOB-QUEUE-2", date: null, service: "cold", site: sites[11], machine: machines[6], vehicle: vehicles[6], people: [], start: "06:30", note: "Getto Boscolo · noleggio a freddo" },
+  { id: "JOB-260824-A", date: 24, month: 8, service: "hot", site: sites[0], machine: machines[10], vehicle: vehicles[3], people: [people[2], people[3], people[4], people[5]], start: "06:30", note: "Squadra Varna · programma cantieri" },
+  { id: "JOB-260824-B", date: 24, month: 8, service: "hot", site: sites[1], machine: machines[4], vehicle: vehicles[2], people: [people[8], people[9], people[10]], start: "07:00", note: "ColaBeton · permanenza settimanale" },
+  { id: "JOB-260826", date: 26, month: 8, service: "hot", site: sites[2], machine: machines[15], vehicle: vehicles[1], people: [people[7], people[13], people[14]], start: "09:00", note: "CityPump · 80 m + 180 m²" },
+  { id: "JOB-260827", date: 27, month: 8, service: "semi", site: sites[3], machine: machines[4], vehicle: vehicles[0], people: [people[1]], start: "05:15", note: "Partenza da Padernello con Eurocargo" },
+  { id: "JOB-260828-A", date: 28, month: 8, service: "hot", site: sites[4], machine: machines[15], vehicle: vehicles[1], people: [people[7], people[13], people[14]], start: "07:00", note: "CityPump · getto programmato" },
+  { id: "JOB-260828-B", date: 28, month: 8, service: "cold", site: sites[5], machine: machines[12], vehicle: vehicles[6], people: [], start: "07:00", note: "Noleggio a freddo · nessun uomo Dalecom" },
+  { id: "JOB-QUEUE-1", date: null, month: null, service: "hot", site: sites[6], machine: machines[15], vehicle: vehicles[1], people: [people[7], people[13]], start: "07:00", note: "Nota programma: getto da confermare" },
+  { id: "JOB-QUEUE-2", date: null, month: null, service: "cold", site: sites[11], machine: machines[6], vehicle: vehicles[6], people: [], start: "06:30", note: "Getto Boscolo · noleggio a freddo" },
 ];
 
 const weekDays = ["LUN", "MAR", "MER", "GIO", "VEN", "SAB", "DOM"];
-const blanksBeforeMonth = 5;
-const monthDays = 31;
+const calendarMonths = [
+  { number: 8, label: "AGOSTO", days: 31, blanks: 5 },
+  { number: 9, label: "SETTEMBRE", days: 30, blanks: 1 },
+  { number: 10, label: "OTTOBRE", days: 31, blanks: 3 },
+] as const;
+const monthName = (month: number | null) => calendarMonths.find((item) => item.number === month)?.label.toLocaleLowerCase("it") || "";
 
 function conflictsFor(assignments: Assignment[]) {
   const conflicts = new Set<string>();
   assignments.filter((item) => item.date !== null).forEach((item, index, dated) => {
     dated.slice(index + 1).forEach((other) => {
-      if (item.date !== other.date) return;
+      if (item.date !== other.date || item.month !== other.month) return;
       const sharedPerson = item.people.some((person) => other.people.includes(person));
       const sharedMachine = item.machine !== "Macchina da assegnare" && item.machine === other.machine;
       const sharedVehicle = item.vehicle !== "Mezzo da assegnare" && item.vehicle === other.vehicle;
@@ -135,7 +141,7 @@ function JobCard({ item, selected, conflict, onSelect, onResourceDrop }: { item:
     }}
     onClick={onSelect}
     onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") onSelect(); }}
-    className={`${styles.job} ${selected ? styles.selected : ""} ${conflict ? styles.conflict : ""}`}
+    className={`${styles.job} ${theme.job} ${selected ? styles.selected : ""} ${conflict ? styles.conflict : ""}`}
     aria-label={`${item.site}, trascina per ripianificare`}
     role="button"
     tabIndex={0}
@@ -155,12 +161,13 @@ export default function LogisticsPage() {
   const [search, setSearch] = useState("");
   const [phase, setPhase] = useState<"sites" | "assets" | "people">("sites");
   const [notice, setNotice] = useState("");
+  const [currentMonth, setCurrentMonth] = useState(8);
 
   useEffect(() => {
     const stored = window.localStorage.getItem("dalecom-logistics-demo-v3");
     if (stored) {
       try {
-        const restored = JSON.parse(stored) as Assignment[];
+        const restored = (JSON.parse(stored) as Assignment[]).map((item) => ({ ...item, month: item.date && !item.month ? 8 : item.month }));
         const frame = window.requestAnimationFrame(() => setAssignments(restored));
         return () => window.cancelAnimationFrame(frame);
       } catch { /* demo fallback */ }
@@ -175,8 +182,8 @@ export default function LogisticsPage() {
   const queue = assignments.filter((item) => item.date === null);
   const busyPeople = new Set(assignments.filter((item) => item.date !== null).flatMap((item) => item.people)).size;
 
-  const move = (id: string, date: number | null) => {
-    setAssignments((current) => current.map((item) => item.id === id ? { ...item, date } : item));
+  const move = (id: string, date: number | null, month: number | null = date ? currentMonth : null) => {
+    setAssignments((current) => current.map((item) => item.id === id ? { ...item, date, month } : item));
     setSelectedId(id);
     setSaved(false);
   };
@@ -228,7 +235,7 @@ export default function LogisticsPage() {
     const payload = readPayload(raw);
     if (!payload) return;
     if (payload.kind === "assignment") {
-      move(payload.id, date);
+      move(payload.id, date, currentMonth);
       return;
     }
     if (payload.kind !== "resource" || payload.type !== "site") {
@@ -240,6 +247,7 @@ export default function LogisticsPage() {
     const draft: Assignment = {
       id,
       date,
+      month: currentMonth,
       service: "hot",
       site: payload.value,
       machine: "Macchina da assegnare",
@@ -259,7 +267,13 @@ export default function LogisticsPage() {
     window.setTimeout(() => setSaved(false), 2200);
   };
 
-  const calendarCells = Array.from({ length: blanksBeforeMonth + monthDays }, (_, index) => index < blanksBeforeMonth ? null : index - blanksBeforeMonth + 1);
+  const activeMonth = calendarMonths.find((item) => item.number === currentMonth) || calendarMonths[0];
+  const calendarCells = Array.from({ length: activeMonth.blanks + activeMonth.days }, (_, index) => index < activeMonth.blanks ? null : index - activeMonth.blanks + 1);
+  const changeMonth = (direction: -1 | 1) => {
+    const index = calendarMonths.findIndex((item) => item.number === currentMonth);
+    const next = calendarMonths[index + direction];
+    if (next) setCurrentMonth(next.number);
+  };
   const resourceGroups: { type: ResourceType; label: string; items: Resource[] }[] = phase === "sites"
     ? [{ type: "site", label: "Cantieri", items: siteResources }]
     : phase === "assets"
@@ -267,18 +281,18 @@ export default function LogisticsPage() {
       : [{ type: "person", label: "Uomini", items: peopleResources }];
   const query = search.trim().toLocaleLowerCase("it");
 
-  return <main className={styles.page}>
-    <header className={styles.top}>
-      <div className={styles.brand}><i /><b>DALECOM</b><span>LOGISTA</span></div>
+  return <main className={`${styles.page} ${theme.page}`}>
+    <header className={`${styles.top} ${theme.top}`}>
+      <div className={`${styles.brand} ${theme.brand}`}><i /><b>DALECOM</b><span>LOGISTA</span></div>
       <nav><a href="/demo">← Regia principale</a><button onClick={save}>{saved ? "✓ Piano salvato" : "Salva pianificazione"}</button></nav>
     </header>
 
-    <section className={styles.hero}>
+    <section className={`${styles.hero} ${theme.hero}`}>
       <div><small>REGIA LOGISTICA · PIANIFICAZIONE MENSILE</small><h1>Quattro risorse.<br /><em>Un solo calendario.</em></h1><p>Trascina le commesse tra le giornate. Macchina, mezzo, uomini e cantiere restano collegati; le sovrapposizioni vengono segnalate subito.</p></div>
-      <div className={styles.legend}><span><i className={styles.okDot} />Disponibile</span><span><i className={styles.warnDot} />Conflitto risorse</span><b>Agosto 2026 · dati Excel</b></div>
+      <div className={`${styles.legend} ${theme.legend}`}><span><i className={styles.okDot} />Disponibile</span><span><i className={styles.warnDot} />Conflitto risorse</span><b>Agosto — ottobre 2026</b></div>
     </section>
 
-    <section className={styles.kpis}>
+    <section className={`${styles.kpis} ${theme.kpis}`}>
       <article><small>COMMESSE PIANIFICATE</small><b>{scheduled}</b><span>nel mese</span></article>
       <article><small>DA COLLOCARE</small><b>{queue.length}</b><span>richieste in attesa</span></article>
       <article><small>PERSONE IMPEGNATE</small><b>{busyPeople}</b><span>su {people.length} disponibili</span></article>
@@ -287,7 +301,7 @@ export default function LogisticsPage() {
     {notice ? <div className={flowStyles.notice} role="status">{notice}</div> : null}
 
     <section className={`${styles.workspace} ${palette.workspace}`}>
-      <aside className={`${styles.queue} ${palette.bank}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => {
+      <aside className={`${styles.queue} ${palette.bank} ${theme.panel}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => {
         const payload = readPayload(event.dataTransfer.getData("text/plain"));
         if (payload?.kind === "assignment") move(payload.id, null);
       }}>
@@ -302,30 +316,31 @@ export default function LogisticsPage() {
         })}</div>
       </aside>
 
-      <section className={styles.calendarWrap}>
-        <div className={styles.calendarToolbar}><div><button aria-label="Mese precedente">‹</button><strong>AGOSTO 2026</strong><button aria-label="Mese successivo">›</button></div><span>Dati iniziali dai programmi Dalecom · trascina per cambiare data</span></div>
-        <div className={styles.weekHeader}>{weekDays.map((day) => <b key={day}>{day}</b>)}</div>
+      <section className={`${styles.calendarWrap} ${theme.panel}`}>
+        <div className={theme.monthTabs}>{calendarMonths.map((month) => <button key={month.number} className={currentMonth === month.number ? theme.activeMonth : ""} onClick={() => setCurrentMonth(month.number)}>{month.label}<small>2026</small></button>)}</div>
+        <div className={`${styles.calendarToolbar} ${theme.calendarToolbar}`}><div><button aria-label="Mese precedente" disabled={currentMonth === 8} onClick={() => changeMonth(-1)}>‹</button><strong>{activeMonth.label} 2026</strong><button aria-label="Mese successivo" disabled={currentMonth === 10} onClick={() => changeMonth(1)}>›</button></div><span>Trascina cantieri e risorse per pianificare</span></div>
+        <div className={`${styles.weekHeader} ${theme.weekHeader}`}>{weekDays.map((day) => <b key={day}>{day}</b>)}</div>
         <div className={styles.calendar}>
           {calendarCells.map((day, index) => day === null ? <div className={styles.blank} key={`blank-${index}`} /> : <div
-            className={`${styles.day} ${(index % 7) > 4 ? styles.weekend : ""}`}
+            className={`${styles.day} ${theme.day} ${(index % 7) > 4 ? styles.weekend : ""}`}
             key={day}
             onDragOver={(event) => event.preventDefault()}
             onDrop={(event) => dropOnDay(event.dataTransfer.getData("text/plain"), day)}
           >
             <span className={styles.dayNumber}>{day}</span>
-            <div className={styles.dayJobs}>{assignments.filter((item) => item.date === day).map((item) => <JobCard key={item.id} item={item} selected={selected.id === item.id} conflict={conflicts.has(item.id)} onSelect={() => setSelectedId(item.id)} onResourceDrop={(type, value) => assignResource(item.id, type, value)} />)}</div>
+            <div className={styles.dayJobs}>{assignments.filter((item) => item.date === day && item.month === currentMonth).map((item) => <JobCard key={item.id} item={item} selected={selected.id === item.id} conflict={conflicts.has(item.id)} onSelect={() => setSelectedId(item.id)} onResourceDrop={(type, value) => assignResource(item.id, type, value)} />)}</div>
           </div>)}
         </div>
       </section>
 
-      <aside className={styles.inspector}>
-        <header><small>DETTAGLIO COMMESSA</small><b>{selected.id}</b><span>{selected.date ? `${selected.date} agosto 2026` : "Non pianificata"}</span></header>
+      <aside className={`${styles.inspector} ${theme.panel}`}>
+        <header><small>DETTAGLIO COMMESSA</small><b>{selected.id}</b><span>{selected.date ? `${selected.date} ${monthName(selected.month)} 2026` : "Non pianificata"}</span></header>
         <label><span>Formula di noleggio</span><select value={selected.service} onChange={(event) => { const service = event.target.value as Assignment["service"]; updateSelected({ service, people: service === "cold" ? [] : selected.people }); }}><option value="cold">A freddo · nessun uomo</option><option value="semi">Semifreddo</option><option value="hot">A caldo</option></select></label>
         <label><span><i>C</i>Cantiere</span><select value={selected.site} onChange={(event) => updateSelected({ site: event.target.value })}>{[...sites, "Venezia · Boscolo"].map((value) => <option key={value}>{value}</option>)}</select></label>
         <label><span><i>M</i>Macchina</span><select value={selected.machine} onChange={(event) => updateSelected({ machine: event.target.value })}><option>Macchina da assegnare</option>{machineResources.map((item) => <option key={item.value} value={item.value} disabled={item.status === "service"}>{item.value}{item.status === "service" ? " · NON DISPONIBILE" : ""}</option>)}</select></label>
         <label><span><i>V</i>Mezzo</span><select value={selected.vehicle} onChange={(event) => updateSelected({ vehicle: event.target.value })}><option>Mezzo da assegnare</option>{vehicleResources.filter((item) => item.value !== "Mezzo da assegnare").map((item) => <option key={item.value} value={item.value} disabled={item.status === "service"}>{item.value}{item.status === "service" ? " · DA RISOLVERE" : ""}</option>)}</select></label>
         {selected.service === "cold" ? <div className={flowStyles.noPeople}><b>U · NESSUN UOMO</b><span>Regola automatica del noleggio a freddo.</span></div> : <><label><span><i>U</i>Primo uomo</span><select value={selected.people[0] || ""} onChange={(event) => updateSelected({ people: event.target.value ? [event.target.value, ...selected.people.slice(1)] : selected.people.slice(1) })}><option value="">Da assegnare</option>{people.map((value) => <option key={value}>{value}</option>)}</select></label><label><span>Secondo uomo</span><select value={selected.people[1] || ""} onChange={(event) => updateSelected({ people: event.target.value ? [selected.people[0], event.target.value, ...selected.people.slice(2)].filter(Boolean) : selected.people.filter((_, index) => index !== 1) })}><option value="">Non previsto</option>{people.filter((person) => person !== selected.people[0]).map((value) => <option key={value}>{value}</option>)}</select></label></>}
-        <div className={styles.detailGrid}><label><span>Inizio</span><input type="time" value={selected.start} onChange={(event) => updateSelected({ start: event.target.value })} /></label><label><span>Giorno</span><input type="number" min="1" max="31" value={selected.date || ""} onChange={(event) => updateSelected({ date: event.target.value ? Number(event.target.value) : null })} /></label></div>
+        <div className={styles.detailGrid}><label><span>Inizio</span><input type="time" value={selected.start} onChange={(event) => updateSelected({ start: event.target.value })} /></label><label><span>Giorno</span><input type="number" min="1" max={calendarMonths.find((month) => month.number === (selected.month || currentMonth))?.days || 31} value={selected.date || ""} onChange={(event) => updateSelected({ date: event.target.value ? Number(event.target.value) : null, month: event.target.value ? (selected.month || currentMonth) : null })} /></label></div>
         <label><span>Nota operativa</span><textarea value={selected.note} onChange={(event) => updateSelected({ note: event.target.value })} /></label>
         <div className={`${styles.check} ${conflicts.has(selected.id) || selectedUnavailable || selectedIncomplete ? styles.checkError : ""}`}><i>{conflicts.has(selected.id) || selectedUnavailable || selectedIncomplete ? "!" : "✓"}</i><div><b>{selectedUnavailable || selectedIncomplete ? "Configurazione incompleta" : conflicts.has(selected.id) ? "Risorsa già impegnata" : "Configurazione disponibile"}</b><span>{selectedUnavailable || selectedIncomplete ? "Completa macchina, mezzo e — salvo il freddo — la squadra." : conflicts.has(selected.id) ? "Sposta la commessa o sostituisci la risorsa." : "Nessuna sovrapposizione nella giornata selezionata."}</span></div></div>
         <button className={styles.unschedule} onClick={() => move(selected.id, null)}>Rimetti tra le commesse in attesa</button>
