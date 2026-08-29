@@ -1,8 +1,7 @@
 .mark {
-  position: fixed;
-  right: 16px;
-  bottom: 14px;
+  position: relative;
   z-index: 1000;
+  margin: -55px 16px 14px auto;
   width: 46px;
   height: 37px;
   display: flex;
@@ -33,8 +32,8 @@
 
 @media (max-width: 650px) {
   .mark {
-    right: 9px;
-    bottom: 9px;
+    margin-right: 9px;
+    margin-bottom: 9px;
     transform: scale(0.88);
     transform-origin: right bottom;
   }

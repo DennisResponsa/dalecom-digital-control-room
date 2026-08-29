@@ -114,6 +114,16 @@ const tools = [
     accent: "disabled",
     disabled: true,
   },
+  {
+    number: "12",
+    eyebrow: "MARKETING",
+    title: "Marketing",
+    description: "Campagne, contenuti e opportunità commerciali coordinati con clienti, preventivi e risultati reali.",
+    action: "",
+    href: "",
+    accent: "disabled",
+    disabled: true,
+  },
 ] as const;
 
 function ToolCard({ tool }: { tool: (typeof tools)[number] }) {
