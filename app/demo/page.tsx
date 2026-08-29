@@ -67,7 +67,7 @@ const tools = [
   {
     number: "07",
     eyebrow: "PERSONALE · HR",
-    title: "Buste Paghe",
+    title: "HR Buste Paghe",
     description: "Presenze, trasferte, indennità e dati economici del personale collegati alle commesse.",
     action: "",
     href: "",
