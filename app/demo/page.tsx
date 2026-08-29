@@ -66,8 +66,8 @@ const tools = [
   },
   {
     number: "07",
-    eyebrow: "PERSONALE",
-    title: "Busta paga",
+    eyebrow: "PERSONALE · HR",
+    title: "Buste Paghe",
     description: "Presenze, trasferte, indennità e dati economici del personale collegati alle commesse.",
     action: "",
     href: "",
@@ -97,7 +97,7 @@ const tools = [
   {
     number: "10",
     eyebrow: "LOGISTICA",
-    title: "Ottimizzazione",
+    title: "Ottimizzazione processi",
     description: "Ottimizzazioni automatiche per l’assegnazione di uomini, mezzi e macchine che ottimizzano la logistica.",
     action: "",
     href: "",

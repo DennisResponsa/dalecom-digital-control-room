@@ -4,7 +4,7 @@
 .disabledCard{--accent:#7f929a!important;background:linear-gradient(150deg,#a8b3b713,#7d8c9210)!important;border-color:#aab7bc22!important;color:#9caeb5!important;cursor:default;filter:saturate(.18);box-shadow:inset 0 1px 0 #ffffff08!important}
 .disabledCard:before{opacity:.08!important}
 .disabledCard:after{opacity:.32!important}
-.disabledCard:hover{transform:none!important;border-color:#aab7bc22!important;box-shadow:inset 0 1px 0 #ffffff08!important}
+.disabledCard.disabledCard:hover{transform:translateY(-7px)!important;border-color:#8fa1a866!important;box-shadow:0 25px 55px #020d1470!important}
 .disabledCard h2{color:#a9b7bd!important}
 .disabledCard p,.disabledCard small{color:#748b94!important}
 .disabledCard span{color:#8799a0!important}
