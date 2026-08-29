@@ -1,0 +1,47 @@
+.mark {
+  position: fixed;
+  right: 16px;
+  bottom: 14px;
+  z-index: 1000;
+  width: 46px;
+  height: 37px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: 1px solid rgba(11, 42, 66, 0.16);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 7px 20px rgba(4, 26, 39, 0.15);
+  backdrop-filter: blur(9px);
+  pointer-events: none;
+}
+
+.mark i {
+  width: 27px;
+  height: 5px;
+  border-top: 2px solid #e8702a;
+  border-bottom: 2px solid #e8702a;
+}
+
+.mark b {
+  color: #0b2a42;
+  font: 900 13px/0.8 Arial, Helvetica, sans-serif;
+  letter-spacing: -0.06em;
+}
+
+@media (max-width: 650px) {
+  .mark {
+    right: 9px;
+    bottom: 9px;
+    transform: scale(0.88);
+    transform-origin: right bottom;
+  }
+}
+
+@media print {
+  .mark {
+    display: none;
+  }
+}

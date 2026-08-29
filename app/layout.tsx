@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import './extra.css';
 import './nav.css';
+import dtStyles from './dt-mark.module.css';
 
 export const metadata: Metadata = {
   title: 'Dalecom | Preventivo immediato',
@@ -26,7 +27,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="it">
-      <body>{children}</body>
+      <body>
+        {children}
+        <div className={dtStyles.mark} aria-label="DT">
+          <i aria-hidden="true" />
+          <b>DT</b>
+        </div>
+      </body>
     </html>
   );
 }
