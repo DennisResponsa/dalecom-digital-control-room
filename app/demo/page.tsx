@@ -69,10 +69,10 @@ const tools = [
     eyebrow: "PERSONALE · HR",
     title: "HR Buste Paghe",
     description: "Presenze, trasferte, indennità e dati economici del personale collegati alle commesse.",
-    action: "",
-    href: "",
-    accent: "disabled",
-    disabled: true,
+    action: "Apri HR e buste paghe",
+    href: "/hr",
+    accent: "cyan",
+    disabled: false,
   },
   {
     number: "08",
@@ -140,10 +140,10 @@ function ToolCard({ tool }: { tool: (typeof tools)[number] }) {
   </>;
 
   if (tool.disabled) {
-    return <article className={`${styles.card} ${sixStyles.compact} ${sixStyles.disabledCard}`}>{content}</article>;
+    return <article className={`${styles.card} ${sixStyles.compact} ${sixStyles.disabledCard}`} aria-disabled="true">{content}</article>;
   }
 
-  return <a className={`${styles.card} ${sixStyles.compact} ${styles[tool.accent] || sixStyles.red}`} href={tool.href} target="_blank" rel="noreferrer">{content}</a>;
+  return <a className={`${styles.card} ${sixStyles.compact} ${styles[tool.accent] || sixStyles.red} ${tool.number === "07" ? sixStyles.hrActive : ""}`} href={tool.href} target="_blank" rel="noreferrer">{content}</a>;
 }
 
 export default function DemoControlRoom() {
