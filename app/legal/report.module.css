@@ -1,0 +1,198 @@
+.outputActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.openReport {
+  background: #fff !important;
+  color: #0b2a42 !important;
+}
+
+.reportOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #071b28d9;
+  backdrop-filter: blur(7px);
+}
+
+.reportDialog {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  width: min(1120px, 96vw);
+  height: min(850px, 92vh);
+  overflow: hidden;
+  border-radius: 20px;
+  background: #f5f8f9;
+  box-shadow: 0 30px 90px #0007;
+}
+
+.reportDialog > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 22px 26px;
+  color: #fff;
+  border-bottom: 4px solid #e8702a;
+  background: linear-gradient(115deg, #0b2a42, #443873);
+}
+
+.reportDialog > header small {
+  color: #bdb8d7;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+.reportDialog > header h2 {
+  margin: 5px 0;
+  font-size: 25px;
+}
+
+.reportDialog > header p {
+  margin: 0;
+  color: #c9d7dc;
+  font-size: 9px;
+}
+
+.reportDialog > header button {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  color: #fff;
+  background: #ffffff1c;
+  font-size: 23px;
+  cursor: pointer;
+}
+
+.reportBody {
+  display: grid;
+  gap: 11px;
+  overflow: auto;
+  padding: 17px;
+}
+
+.reportItem {
+  padding: 14px;
+  border: 1px solid #d9e3e7;
+  border-radius: 13px;
+  background: #fff;
+  box-shadow: 0 8px 20px #1738490a;
+}
+
+.reportItemHead {
+  display: grid;
+  grid-template-columns: auto 1fr 130px;
+  gap: 10px;
+  align-items: center;
+}
+
+.reportItemHead div small {
+  display: block;
+  color: #7d8d95;
+  font-size: 8px;
+}
+
+.reportItemHead div b {
+  display: block;
+  margin-top: 3px;
+  color: #17384a;
+  font-size: 12px;
+}
+
+.reportItemHead select {
+  padding: 8px;
+  border: 1px solid #ccd9de;
+  border-radius: 8px;
+  color: #294654;
+  background: #f7fafb;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.reportItem textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 72px;
+  margin-top: 11px;
+  padding: 10px;
+  resize: vertical;
+  border: 1px solid #e3c69f;
+  border-radius: 9px;
+  color: #3c5662;
+  background: #fffaf3;
+  font: inherit;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.reportDialog > footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  padding: 15px 22px;
+  border-top: 1px solid #d8e2e6;
+  background: #fff;
+}
+
+.reportDialog > footer span {
+  color: #647984;
+  font-size: 10px;
+}
+
+.reportDialog > footer div {
+  display: flex;
+  gap: 8px;
+}
+
+.reportDialog > footer button {
+  padding: 11px 14px;
+  border: 0;
+  border-radius: 9px;
+  color: #fff;
+  background: #e8702a;
+  font-size: 9px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.reportDialog > footer .closeReport {
+  color: #294654;
+  background: #e9eff1;
+}
+
+@media (max-width: 650px) {
+  .reportOverlay {
+    padding: 8px;
+  }
+
+  .reportDialog {
+    width: 100%;
+    height: 96vh;
+  }
+
+  .reportItemHead {
+    grid-template-columns: auto 1fr;
+  }
+
+  .reportItemHead select {
+    grid-column: 1 / -1;
+  }
+
+  .reportDialog > footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .outputActions {
+    align-items: stretch;
+    flex-direction: column;
+    width: 100%;
+  }
+}
