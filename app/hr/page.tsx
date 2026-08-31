@@ -9,14 +9,14 @@ import colorStyles from "./color.module.css";
 type Employee = { code: string; name: string; type: string; position: string; department: string };
 type View = "mensile" | "storico" | "ula";
 type PayrollMetric = {
-  ordinary: number; overtime: number; permits: number; days: number; saturdays: number;
+  ordinary: number; overtime: number; permits: number; vacationTaken: number; vacationBalance: number; days: number; saturdays: number;
   tickets: number; travelDays: number; meals: number; allowance: number;
   payslip: number; advance: number; transfer: number; balance: number; thirteenth: number; fourteenth: number;
   months: number; yearlyHours: number; yearlyDays: number; yearlyGross: number; yearlyNet: number;
   status: "ok" | "warning"; note: string; category: string; fte: number;
 };
 type HistoryMonth = {
-  employeeCode: string; month: string; ordinary: number; overtime: number; permits: number; days: number;
+  employeeCode: string; month: string; ordinary: number; overtime: number; permits: number; vacationTaken: number; vacationBalance: number; days: number;
   tickets: number; travelDays: number; gross: number; net: number; advance: number; transfer: number;
   allowance: number; thirteenth: number; fourteenth: number;
 };
@@ -29,30 +29,30 @@ const fallbackEmployees: Employee[] = [
 ];
 
 const demoMetrics: Record<string, PayrollMetric> = {
-  "000000001": { ordinary: 168, overtime: 4, permits: 0, days: 21, saturdays: 1, tickets: 18, travelDays: 3, meals: 2, allowance: 180, payslip: 2950, advance: 0, transfer: 2950, balance: 0, thirteenth: 246, fourteenth: 246, months: 6, yearlyHours: 1044, yearlyDays: 127, yearlyGross: 21000, yearlyNet: 14750, status: "ok", note: "Presenze, indennità e valori paga coerenti per la simulazione.", category: "IMP", fte: 1 },
-  "000000002": { ordinary: 176, overtime: 12, permits: 4, days: 21, saturdays: 2, tickets: 20, travelDays: 8, meals: 6, allowance: 265, payslip: 2434, advance: 250, transfer: 2184, balance: 0, thirteenth: 203, fourteenth: 203, months: 6, yearlyHours: 1092, yearlyDays: 127, yearlyGross: 17400, yearlyNet: 14034, status: "ok", note: "Ore, trasferte, ticket e acconto riconciliati. Pacchetto paghe pronto.", category: "OP", fte: 1 },
-  "000000003": { ordinary: 168, overtime: 8, permits: 8, days: 21, saturdays: 1, tickets: 18, travelDays: 5, meals: 4, allowance: 155, payslip: 2036, advance: 0, transfer: 2036, balance: 0, thirteenth: 170, fourteenth: 170, months: 6, yearlyHours: 1054, yearlyDays: 125, yearlyGross: 14850, yearlyNet: 11926, status: "warning", note: "Una giornata senza cantiere associato: controllo HR richiesto prima della chiusura.", category: "OP", fte: 1 },
+  "000000001": { ordinary: 168, overtime: 4, permits: 0, vacationTaken: 8, vacationBalance: 112, days: 21, saturdays: 1, tickets: 18, travelDays: 3, meals: 2, allowance: 180, payslip: 2950, advance: 0, transfer: 2950, balance: 0, thirteenth: 246, fourteenth: 246, months: 6, yearlyHours: 1044, yearlyDays: 127, yearlyGross: 21000, yearlyNet: 14750, status: "ok", note: "Presenze, indennità e valori paga coerenti per la simulazione.", category: "IMP", fte: 1 },
+  "000000002": { ordinary: 176, overtime: 12, permits: 4, vacationTaken: 16, vacationBalance: 72, days: 21, saturdays: 2, tickets: 20, travelDays: 8, meals: 6, allowance: 265, payslip: 2434, advance: 250, transfer: 2184, balance: 0, thirteenth: 203, fourteenth: 203, months: 6, yearlyHours: 1092, yearlyDays: 127, yearlyGross: 17400, yearlyNet: 14034, status: "ok", note: "Ore, trasferte, ticket e acconto riconciliati. Pacchetto paghe pronto.", category: "OP", fte: 1 },
+  "000000003": { ordinary: 168, overtime: 8, permits: 8, vacationTaken: 8, vacationBalance: 64, days: 21, saturdays: 1, tickets: 18, travelDays: 5, meals: 4, allowance: 155, payslip: 2036, advance: 0, transfer: 2036, balance: 0, thirteenth: 170, fourteenth: 170, months: 6, yearlyHours: 1054, yearlyDays: 125, yearlyGross: 14850, yearlyNet: 11926, status: "warning", note: "Una giornata senza cantiere associato: controllo HR richiesto prima della chiusura.", category: "OP", fte: 1 },
 };
 
 const history2026: HistoryMonth[] = [
-  { employeeCode: "000000001", month: "Gennaio", ordinary: 160, overtime: 4, permits: 0, days: 20, tickets: 18, travelDays: 2, gross: 3400, net: 2300, advance: 0, transfer: 2300, allowance: 150, thirteenth: 192, fourteenth: 192 },
-  { employeeCode: "000000001", month: "Febbraio", ordinary: 168, overtime: 6, permits: 0, days: 21, tickets: 19, travelDays: 2, gross: 3450, net: 2340, advance: 0, transfer: 2340, allowance: 160, thirteenth: 195, fourteenth: 195 },
-  { employeeCode: "000000001", month: "Marzo", ordinary: 176, overtime: 4, permits: 0, days: 22, tickets: 20, travelDays: 3, gross: 3500, net: 2380, advance: 0, transfer: 2380, allowance: 170, thirteenth: 198, fourteenth: 198 },
-  { employeeCode: "000000001", month: "Aprile", ordinary: 168, overtime: 4, permits: 0, days: 21, tickets: 18, travelDays: 2, gross: 3500, net: 2400, advance: 0, transfer: 2400, allowance: 165, thirteenth: 200, fourteenth: 200 },
-  { employeeCode: "000000001", month: "Maggio", ordinary: 176, overtime: 6, permits: 0, days: 22, tickets: 20, travelDays: 4, gross: 3550, net: 2380, advance: 0, transfer: 2380, allowance: 185, thirteenth: 198, fourteenth: 198 },
-  { employeeCode: "000000001", month: "Giugno", ordinary: 168, overtime: 4, permits: 0, days: 21, tickets: 18, travelDays: 3, gross: 3600, net: 2950, advance: 0, transfer: 2950, allowance: 180, thirteenth: 246, fourteenth: 246 },
-  { employeeCode: "000000002", month: "Gennaio", ordinary: 168, overtime: 8, permits: 0, days: 21, tickets: 19, travelDays: 6, gross: 2780, net: 2240, advance: 0, transfer: 2240, allowance: 190, thirteenth: 187, fourteenth: 187 },
-  { employeeCode: "000000002", month: "Febbraio", ordinary: 160, overtime: 12, permits: 8, days: 20, tickets: 18, travelDays: 7, gross: 2820, net: 2280, advance: 250, transfer: 2030, allowance: 215, thirteenth: 190, fourteenth: 190 },
-  { employeeCode: "000000002", month: "Marzo", ordinary: 176, overtime: 10, permits: 0, days: 22, tickets: 20, travelDays: 8, gross: 2890, net: 2330, advance: 0, transfer: 2330, allowance: 245, thirteenth: 194, fourteenth: 194 },
-  { employeeCode: "000000002", month: "Aprile", ordinary: 168, overtime: 14, permits: 4, days: 21, tickets: 19, travelDays: 9, gross: 2940, net: 2380, advance: 0, transfer: 2380, allowance: 275, thirteenth: 198, fourteenth: 198 },
-  { employeeCode: "000000002", month: "Maggio", ordinary: 176, overtime: 12, permits: 0, days: 22, tickets: 20, travelDays: 10, gross: 2950, net: 2370, advance: 0, transfer: 2370, allowance: 295, thirteenth: 198, fourteenth: 198 },
-  { employeeCode: "000000002", month: "Giugno", ordinary: 176, overtime: 12, permits: 4, days: 21, tickets: 20, travelDays: 8, gross: 3020, net: 2434, advance: 250, transfer: 2184, allowance: 265, thirteenth: 203, fourteenth: 203 },
-  { employeeCode: "000000003", month: "Gennaio", ordinary: 168, overtime: 6, permits: 0, days: 21, tickets: 18, travelDays: 4, gross: 2380, net: 1900, advance: 0, transfer: 1900, allowance: 135, thirteenth: 158, fourteenth: 158 },
-  { employeeCode: "000000003", month: "Febbraio", ordinary: 160, overtime: 8, permits: 8, days: 20, tickets: 17, travelDays: 4, gross: 2420, net: 1940, advance: 0, transfer: 1940, allowance: 140, thirteenth: 162, fourteenth: 162 },
-  { employeeCode: "000000003", month: "Marzo", ordinary: 176, overtime: 10, permits: 0, days: 22, tickets: 20, travelDays: 6, gross: 2490, net: 2000, advance: 150, transfer: 1850, allowance: 170, thirteenth: 167, fourteenth: 167 },
-  { employeeCode: "000000003", month: "Aprile", ordinary: 168, overtime: 6, permits: 4, days: 20, tickets: 18, travelDays: 5, gross: 2480, net: 1980, advance: 0, transfer: 1980, allowance: 155, thirteenth: 165, fourteenth: 165 },
-  { employeeCode: "000000003", month: "Maggio", ordinary: 168, overtime: 8, permits: 0, days: 21, tickets: 19, travelDays: 6, gross: 2570, net: 2070, advance: 0, transfer: 2070, allowance: 175, thirteenth: 173, fourteenth: 173 },
-  { employeeCode: "000000003", month: "Giugno", ordinary: 168, overtime: 8, permits: 8, days: 21, tickets: 18, travelDays: 5, gross: 2510, net: 2036, advance: 0, transfer: 2036, allowance: 155, thirteenth: 170, fourteenth: 170 },
+  { employeeCode: "000000001", month: "Gennaio", ordinary: 160, overtime: 4, permits: 0, vacationTaken: 0, vacationBalance: 88, days: 20, tickets: 18, travelDays: 2, gross: 3400, net: 2300, advance: 0, transfer: 2300, allowance: 150, thirteenth: 192, fourteenth: 192 },
+  { employeeCode: "000000001", month: "Febbraio", ordinary: 168, overtime: 6, permits: 0, vacationTaken: 0, vacationBalance: 96, days: 21, tickets: 19, travelDays: 2, gross: 3450, net: 2340, advance: 0, transfer: 2340, allowance: 160, thirteenth: 195, fourteenth: 195 },
+  { employeeCode: "000000001", month: "Marzo", ordinary: 176, overtime: 4, permits: 0, vacationTaken: 8, vacationBalance: 96, days: 22, tickets: 20, travelDays: 3, gross: 3500, net: 2380, advance: 0, transfer: 2380, allowance: 170, thirteenth: 198, fourteenth: 198 },
+  { employeeCode: "000000001", month: "Aprile", ordinary: 168, overtime: 4, permits: 0, vacationTaken: 0, vacationBalance: 104, days: 21, tickets: 18, travelDays: 2, gross: 3500, net: 2400, advance: 0, transfer: 2400, allowance: 165, thirteenth: 200, fourteenth: 200 },
+  { employeeCode: "000000001", month: "Maggio", ordinary: 176, overtime: 6, permits: 0, vacationTaken: 0, vacationBalance: 112, days: 22, tickets: 20, travelDays: 4, gross: 3550, net: 2380, advance: 0, transfer: 2380, allowance: 185, thirteenth: 198, fourteenth: 198 },
+  { employeeCode: "000000001", month: "Giugno", ordinary: 168, overtime: 4, permits: 0, vacationTaken: 8, vacationBalance: 112, days: 21, tickets: 18, travelDays: 3, gross: 3600, net: 2950, advance: 0, transfer: 2950, allowance: 180, thirteenth: 246, fourteenth: 246 },
+  { employeeCode: "000000002", month: "Gennaio", ordinary: 168, overtime: 8, permits: 0, vacationTaken: 0, vacationBalance: 64, days: 21, tickets: 19, travelDays: 6, gross: 2780, net: 2240, advance: 0, transfer: 2240, allowance: 190, thirteenth: 187, fourteenth: 187 },
+  { employeeCode: "000000002", month: "Febbraio", ordinary: 160, overtime: 12, permits: 8, vacationTaken: 8, vacationBalance: 64, days: 20, tickets: 18, travelDays: 7, gross: 2820, net: 2280, advance: 250, transfer: 2030, allowance: 215, thirteenth: 190, fourteenth: 190 },
+  { employeeCode: "000000002", month: "Marzo", ordinary: 176, overtime: 10, permits: 0, vacationTaken: 0, vacationBalance: 72, days: 22, tickets: 20, travelDays: 8, gross: 2890, net: 2330, advance: 0, transfer: 2330, allowance: 245, thirteenth: 194, fourteenth: 194 },
+  { employeeCode: "000000002", month: "Aprile", ordinary: 168, overtime: 14, permits: 4, vacationTaken: 0, vacationBalance: 80, days: 21, tickets: 19, travelDays: 9, gross: 2940, net: 2380, advance: 0, transfer: 2380, allowance: 275, thirteenth: 198, fourteenth: 198 },
+  { employeeCode: "000000002", month: "Maggio", ordinary: 176, overtime: 12, permits: 0, vacationTaken: 8, vacationBalance: 80, days: 22, tickets: 20, travelDays: 10, gross: 2950, net: 2370, advance: 0, transfer: 2370, allowance: 295, thirteenth: 198, fourteenth: 198 },
+  { employeeCode: "000000002", month: "Giugno", ordinary: 176, overtime: 12, permits: 4, vacationTaken: 16, vacationBalance: 72, days: 21, tickets: 20, travelDays: 8, gross: 3020, net: 2434, advance: 250, transfer: 2184, allowance: 265, thirteenth: 203, fourteenth: 203 },
+  { employeeCode: "000000003", month: "Gennaio", ordinary: 168, overtime: 6, permits: 0, vacationTaken: 0, vacationBalance: 48, days: 21, tickets: 18, travelDays: 4, gross: 2380, net: 1900, advance: 0, transfer: 1900, allowance: 135, thirteenth: 158, fourteenth: 158 },
+  { employeeCode: "000000003", month: "Febbraio", ordinary: 160, overtime: 8, permits: 8, vacationTaken: 0, vacationBalance: 56, days: 20, tickets: 17, travelDays: 4, gross: 2420, net: 1940, advance: 0, transfer: 1940, allowance: 140, thirteenth: 162, fourteenth: 162 },
+  { employeeCode: "000000003", month: "Marzo", ordinary: 176, overtime: 10, permits: 0, vacationTaken: 8, vacationBalance: 56, days: 22, tickets: 20, travelDays: 6, gross: 2490, net: 2000, advance: 150, transfer: 1850, allowance: 170, thirteenth: 167, fourteenth: 167 },
+  { employeeCode: "000000003", month: "Aprile", ordinary: 168, overtime: 6, permits: 4, vacationTaken: 0, vacationBalance: 64, days: 20, tickets: 18, travelDays: 5, gross: 2480, net: 1980, advance: 0, transfer: 1980, allowance: 155, thirteenth: 165, fourteenth: 165 },
+  { employeeCode: "000000003", month: "Maggio", ordinary: 168, overtime: 8, permits: 0, vacationTaken: 8, vacationBalance: 64, days: 21, tickets: 19, travelDays: 6, gross: 2570, net: 2070, advance: 0, transfer: 2070, allowance: 175, thirteenth: 173, fourteenth: 173 },
+  { employeeCode: "000000003", month: "Giugno", ordinary: 168, overtime: 8, permits: 8, vacationTaken: 8, vacationBalance: 64, days: 21, tickets: 18, travelDays: 5, gross: 2510, net: 2036, advance: 0, transfer: 2036, allowance: 155, thirteenth: 170, fourteenth: 170 },
 ];
 
 const priorYears: PriorYear[] = [
@@ -96,12 +96,13 @@ export default function HrPayrollPage() {
     const records = history2026.filter((record) => record.employeeCode === employee.code);
     return records.reduce((sum, record) => ({
       employee, months: sum.months + 1, hours: sum.hours + record.ordinary + record.overtime,
-      overtime: sum.overtime + record.overtime, permits: sum.permits + record.permits, days: sum.days + record.days,
+      overtime: sum.overtime + record.overtime, permits: sum.permits + record.permits,
+      vacationTaken: sum.vacationTaken + record.vacationTaken, vacationBalance: record.vacationBalance, days: sum.days + record.days,
       tickets: sum.tickets + record.tickets, travelDays: sum.travelDays + record.travelDays,
       gross: sum.gross + record.gross, net: sum.net + record.net, advances: sum.advances + record.advance,
       transfers: sum.transfers + record.transfer, allowances: sum.allowances + record.allowance,
       thirteenth: sum.thirteenth + record.thirteenth, fourteenth: sum.fourteenth + record.fourteenth,
-    }), { employee, months: 0, hours: 0, overtime: 0, permits: 0, days: 0, tickets: 0, travelDays: 0, gross: 0, net: 0, advances: 0, transfers: 0, allowances: 0, thirteenth: 0, fourteenth: 0 });
+    }), { employee, months: 0, hours: 0, overtime: 0, permits: 0, vacationTaken: 0, vacationBalance: 0, days: 0, tickets: 0, travelDays: 0, gross: 0, net: 0, advances: 0, transfers: 0, allowances: 0, thirteenth: 0, fourteenth: 0 });
   }), [included]);
   const historyTotals = useMemo(() => historySummary.reduce((sum, row) => ({
     hours: sum.hours + row.hours, gross: sum.gross + row.gross, net: sum.net + row.net,
@@ -153,7 +154,7 @@ export default function HrPayrollPage() {
             <div><small>Ore ordinarie</small><b>{metric.ordinary}</b></div><div><small>Straordinarie</small><b>{metric.overtime}</b></div><div><small>Giorni lavorati</small><b>{metric.days}</b></div><div><small>Ticket</small><b>{metric.tickets}</b></div>
           </div>
           <div className={detailStyles.detailGrid}>
-            <section><header>ORE E PRESENZE</header><div><span>Permessi</span><b>{metric.permits} h</b></div><div><span>Sabati lavorati</span><b>{metric.saturdays}</b></div><div><span>Ore totali</span><b>{metric.ordinary + metric.overtime} h</b></div><div><span>Rapportini 1C</span><b className={styles.checkOk}>Acquisiti</b></div></section>
+            <section><header>ORE, FERIE E PRESENZE</header><div><span>Permessi</span><b>{metric.permits} h</b></div><div><span>Ferie godute nel mese</span><b>{metric.vacationTaken} h</b></div><div><span>Ferie residue</span><b>{metric.vacationBalance} h</b></div><div><span>Sabati lavorati</span><b>{metric.saturdays}</b></div><div><span>Ore totali</span><b>{metric.ordinary + metric.overtime} h</b></div><div><span>Rapportini 1C</span><b className={styles.checkOk}>Acquisiti</b></div></section>
             <section><header>TRASFERTE E INDENNITÀ</header><div><span>Giorni in trasferta</span><b>{metric.travelDays}</b></div><div><span>Pranzi / cene</span><b>{metric.meals}</b></div><div><span>Ticket pasto</span><b>{metric.tickets}</b></div><div><span>Indennità demo</span><b>{money.format(metric.allowance)}</b></div></section>
             <section><header>CEDOLINO E PAGAMENTI</header><div><span>Cedolino</span><b>{money.format(metric.payslip)}</b></div><div><span>Acconto</span><b>{money.format(metric.advance)}</b></div><div><span>Bonifico</span><b>{money.format(metric.transfer)}</b></div><div><span>Da saldare</span><b>{money.format(metric.balance)}</b></div></section>
             <section><header>ACCANTONAMENTI</header><div><span>13ª progressiva</span><b>{money.format(metric.thirteenth)}</b></div><div><span>14ª progressiva</span><b>{money.format(metric.fourteenth)}</b></div><div><span>Categoria ULA</span><b>{metric.category}</b></div><div><span>Tempo pieno</span><b>{Math.round(metric.fte * 100)}%</b></div></section>
@@ -185,10 +186,10 @@ export default function HrPayrollPage() {
         <div className={historyStyles.sectionTitle}><div><small>GENNAIO—GIUGNO 2026</small><h3>Progressivi per dipendente</h3></div><p>Clicca sul nome per aprire il mensile della persona.</p></div>
         <div className={historyStyles.tableScroll}>
           <table className={historyStyles.richTable}>
-            <thead><tr><th>Dipendente</th><th>Mesi</th><th>Ore</th><th>Straord.</th><th>Permessi</th><th>Giorni</th><th>Trasferte</th><th>Ticket</th><th>Retribuzione</th><th>Netto eff.</th><th>Acconti</th><th>Bonifici</th><th>Indennità</th><th>13ª</th><th>14ª</th><th>€/ora</th><th>€/giorno</th><th>Media netto</th></tr></thead>
+            <thead><tr><th>Dipendente</th><th>Mesi</th><th>Ore</th><th>Straord.</th><th>Permessi</th><th>Ferie godute</th><th>Ferie residue</th><th>Giorni</th><th>Trasferte</th><th>Ticket</th><th>Retribuzione</th><th>Netto eff.</th><th>Acconti</th><th>Bonifici</th><th>Indennità</th><th>13ª</th><th>14ª</th><th>€/ora</th><th>€/giorno</th><th>Media netto</th></tr></thead>
             <tbody>{historySummary.map((row) => <tr key={row.employee.code}>
               <th><button onClick={() => openMonthly(row.employee.code)}>{row.employee.name}<small>Apri mensile →</small></button></th>
-              <td>{row.months}</td><td>{row.hours}</td><td>{row.overtime}</td><td>{row.permits}</td><td>{row.days}</td><td>{row.travelDays}</td><td>{row.tickets}</td>
+              <td>{row.months}</td><td>{row.hours}</td><td>{row.overtime}</td><td>{row.permits}</td><td>{row.vacationTaken} h</td><td>{row.vacationBalance} h</td><td>{row.days}</td><td>{row.travelDays}</td><td>{row.tickets}</td>
               <td>{money.format(row.gross)}</td><td>{money.format(row.net)}</td><td>{money.format(row.advances)}</td><td>{money.format(row.transfers)}</td><td>{money.format(row.allowances)}</td><td>{money.format(row.thirteenth)}</td><td>{money.format(row.fourteenth)}</td>
               <td>{money.format(row.gross / Math.max(row.hours, 1))}</td><td>{money.format(row.gross / Math.max(row.days, 1))}</td><td>{money.format(row.net / Math.max(row.months, 1))}</td>
             </tr>)}</tbody>
@@ -199,8 +200,8 @@ export default function HrPayrollPage() {
         <div className={historyStyles.monthCards}>{included.map((employee) => <article key={employee.code}>
           <button className={historyStyles.employeeLink} onClick={() => openMonthly(employee.code)}><span>{employee.name}</span><small>Vai alla scheda mensile →</small></button>
           <div className={historyStyles.miniTable}>
-            <div className={historyStyles.miniHead}><span>Mese</span><span>Ore</span><span>GG</span><span>Trasf.</span><span>Retrib.</span><span>Netto</span><span>Bonifico</span></div>
-            {history2026.filter((record) => record.employeeCode === employee.code).map((record) => <div key={record.month}><b>{record.month}</b><span>{record.ordinary + record.overtime}</span><span>{record.days}</span><span>{record.travelDays}</span><span>{money.format(record.gross)}</span><span>{money.format(record.net)}</span><span>{money.format(record.transfer)}</span></div>)}
+            <div className={historyStyles.miniHead}><span>Mese</span><span>Ore</span><span>GG</span><span>Ferie god.</span><span>Ferie res.</span><span>Trasf.</span><span>Retrib.</span><span>Netto</span><span>Bonifico</span></div>
+            {history2026.filter((record) => record.employeeCode === employee.code).map((record) => <div key={record.month}><b>{record.month}</b><span>{record.ordinary + record.overtime}</span><span>{record.days}</span><span>{record.vacationTaken} h</span><span>{record.vacationBalance} h</span><span>{record.travelDays}</span><span>{money.format(record.gross)}</span><span>{money.format(record.net)}</span><span>{money.format(record.transfer)}</span></div>)}
           </div>
         </article>)}</div>
 
