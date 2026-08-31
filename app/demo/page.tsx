@@ -79,10 +79,10 @@ const tools = [
     eyebrow: "SICUREZZA",
     title: "Sicurezza e formazione",
     description: "Corsi, idoneità, DPI, patentini e scadenze per assegnare soltanto personale conforme.",
-    action: "",
-    href: "",
-    accent: "disabled",
-    disabled: true,
+    action: "Apri Safety Passport",
+    href: "/sicurezza",
+    accent: "green",
+    disabled: false,
   },
   {
     number: "09",
@@ -123,6 +123,16 @@ const tools = [
     href: "",
     accent: "disabled",
     disabled: true,
+  },
+  {
+    number: "13",
+    eyebrow: "SAFETY INTELLIGENCE",
+    title: "Dashboard CEO",
+    description: "KPI, scadenze, accessi ai cantieri e alert formativi per governare sicurezza e conformità.",
+    action: "Apri la dashboard CEO",
+    href: "/sicurezza-walter",
+    accent: "orange",
+    disabled: false,
   },
 ] as const;
 

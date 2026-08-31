@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import styles from "./page.module.css";
 import catalog from "./catalog.module.css";
 import { dutiesForCode, dutyGroups, procedures } from "./data";
@@ -76,6 +76,19 @@ export default function OrganizationPage() {
   const selectedDutyGroup = dutyGroups.find((group) => group.codes.includes(selectedId));
   const selectedProcedure = procedures.find((procedure) => procedure.code === selectedProcedureCode) || procedures[0];
   const selectRole = (id: string) => { setSelectedId(id); setSelectedEmployee(null); };
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requestedView = params.get("view");
+    if (["organigramma", "mansionari", "procedure"].includes(requestedView || "")) setView(requestedView as View);
+    const employee = params.get("employee");
+    if (!employee) return;
+    const role = allRoles.find((item) => membersFor(item).includes(employee));
+    if (role) {
+      setSelectedId(role.id);
+      setSelectedEmployee(employee);
+      setView("organigramma");
+    }
+  }, [allRoles]);
 
   return <main className={styles.page}>
     <header className={styles.top}>
@@ -84,7 +97,7 @@ export default function OrganizationPage() {
     </header>
     <section className={styles.hero}>
       <div><small>PERSONE · RESPONSABILITÀ · PROCESSI</small><h1>L’azienda sa<br /><em>chi fa cosa.</em></h1></div>
-      <aside><b>REV. 25 AGOSTO 2026</b><span>37 codici organizzativi mappati</span><i>Connessione 1C predisposta</i></aside>
+      <aside><b>REV. 25 AGOSTO 2026</b><span>66 persone · 37 codici organizzativi</span><i>Connessione 1C predisposta</i></aside>
     </section>
     <nav className={styles.tabs} aria-label="Viste organizzative">
       {(["organigramma", "mansionari", "procedure"] as View[]).map((item) => <button key={item} className={view === item ? styles.active : ""} onClick={() => setView(item)}>{item === "organigramma" ? "Organigramma" : item === "mansionari" ? "Mansionari" : "Procedure operative"}</button>)}

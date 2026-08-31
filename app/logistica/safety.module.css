@@ -1,0 +1,22 @@
+.safetyBlock,
+.safetyWarning {
+  display: block;
+  margin-top: 4px;
+  padding: 5px 6px !important;
+  border-radius: 5px;
+  font-size: 6px !important;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.safetyBlock {
+  color: #a52c22 !important;
+  background: #ffe4df;
+  box-shadow: inset 3px 0 #d84f42;
+}
+
+.safetyWarning {
+  color: #84630d !important;
+  background: #fff5cc;
+  box-shadow: inset 3px 0 #d8a52c;
+}

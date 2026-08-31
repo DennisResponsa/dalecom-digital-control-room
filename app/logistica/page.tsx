@@ -5,6 +5,8 @@ import styles from "./page.module.css";
 import palette from "./palette.module.css";
 import flowStyles from "./workflow.module.css";
 import theme from "./dalecom-theme.module.css";
+import safetyStyles from "./safety.module.css";
+import { employeeNames, safetyCheck } from "../safety-data";
 
 type Assignment = {
   id: string;
@@ -48,8 +50,13 @@ const vehicleResources: Resource[] = [
   { value: "GC589XY · furgone", status: "available" }, { value: "FW903KV · autocarro", status: "available" },
   { value: "Mezzo da assegnare", status: "service", note: "Scelta necessaria" },
 ];
-const personNames = ["Miglioranza Cristiano", "Loriato Flavio", "Marconato Ermens", "Mustapha Sow", "Enon Iloghiojie", "Pace Vincenzo", "Garbin Thomas", "Kaci Ilirjan", "Serghei", "Berdaga Tudor", "Berdaga Jacob", "Berdaga Dionise", "Talmaci Andrei", "Basile Bambara", "Mohammed Mestef", "Naoussi Carlo", "Cani Tonin", "Alex Henrique Zangirolami", "Buonaiuto Paco", "Verejan Radu", "Berdaga Maxim", "Berdaga Mihail", "Ibrahima Ndiaye"];
-const peopleResources: Resource[] = personNames.map((value) => ({ value, status: ["Naoussi Carlo", "Cani Tonin", "Buonaiuto Paco", "Verejan Radu", "Berdaga Maxim", "Berdaga Mihail", "Ibrahima Ndiaye"].includes(value) ? "busy" : "available", note: ["Naoussi Carlo", "Cani Tonin", "Buonaiuto Paco", "Verejan Radu", "Berdaga Maxim", "Berdaga Mihail", "Ibrahima Ndiaye"].includes(value) ? "Ferie nel programma corrente" : undefined }));
+const peopleResources: Resource[] = employeeNames.map((value) => {
+  const safety = safetyCheck(value);
+  const onLeave = ["Naoussi Carlo", "Cani Tonin", "Buonaiuto Paco", "Verejan Radu", "Berdaga Maxim", "Berdaga Mihail", "Ibrahima Ndiaye"].includes(value);
+  if (safety.level === "red") return { value, status: "service", note: `SICUREZZA · ${safety.missing.join(", ")}` };
+  if (onLeave) return { value, status: "busy", note: "Ferie nel programma corrente" };
+  return { value, status: "available", note: safety.level === "yellow" ? `ATTENZIONE · ${safety.warnings.join(", ")}` : "Safety Passport conforme" };
+});
 const siteResources: Resource[] = ["Varna", "Roma · ColaBeton", "Modena · Vera Costruzioni", "Trieste · Piccola Sicilia", "Vicenza · EdilDesign", "Cittadella", "Bologna · SEAF", "Mantova", "Marghera", "Val d’Ultimo", "Padernello · Capannone", "Venezia · Boscolo"].map((value) => ({ value, status: "available" }));
 const machines = machineResources.map((item) => item.value);
 const vehicles = vehicleResources.map((item) => item.value);
@@ -57,13 +64,13 @@ const people = peopleResources.map((item) => item.value);
 const sites = siteResources.map((item) => item.value);
 
 const initialAssignments: Assignment[] = [
-  { id: "JOB-260824-A", date: 24, month: 8, service: "hot", site: sites[0], machine: machines[10], vehicle: vehicles[3], people: [people[2], people[3], people[4], people[5]], start: "06:30", note: "Squadra Varna · programma cantieri" },
-  { id: "JOB-260824-B", date: 24, month: 8, service: "hot", site: sites[1], machine: machines[4], vehicle: vehicles[2], people: [people[8], people[9], people[10]], start: "07:00", note: "ColaBeton · permanenza settimanale" },
-  { id: "JOB-260826", date: 26, month: 8, service: "hot", site: sites[2], machine: machines[15], vehicle: vehicles[1], people: [people[7], people[13], people[14]], start: "09:00", note: "CityPump · 80 m + 180 m²" },
-  { id: "JOB-260827", date: 27, month: 8, service: "semi", site: sites[3], machine: machines[4], vehicle: vehicles[0], people: [people[1]], start: "05:15", note: "Partenza da Padernello con Eurocargo" },
-  { id: "JOB-260828-A", date: 28, month: 8, service: "hot", site: sites[4], machine: machines[15], vehicle: vehicles[1], people: [people[7], people[13], people[14]], start: "07:00", note: "CityPump · getto programmato" },
+  { id: "JOB-260824-A", date: 24, month: 8, service: "hot", site: sites[0], machine: machines[10], vehicle: vehicles[3], people: ["Marconato Ermens", "Buonaiuto Paco", "Sow Moustapha", "Verejan Radu"], start: "06:30", note: "Squadra Varna · programma cantieri" },
+  { id: "JOB-260824-B", date: 24, month: 8, service: "hot", site: sites[1], machine: machines[4], vehicle: vehicles[2], people: ["Toscano Enrico", "Mihali Daniel", "Stecho Dorel"], start: "07:00", note: "ColaBeton · permanenza settimanale" },
+  { id: "JOB-260826", date: 26, month: 8, service: "hot", site: sites[2], machine: machines[15], vehicle: vehicles[1], people: ["Kaci Ilirjan", "Garbin Thomas", "Mesfef Mohammed"], start: "09:00", note: "CityPump · 80 m + 180 m²" },
+  { id: "JOB-260827", date: 27, month: 8, service: "semi", site: sites[3], machine: machines[4], vehicle: vehicles[0], people: ["Loriato Flavio"], start: "05:15", note: "Partenza da Padernello con Eurocargo" },
+  { id: "JOB-260828-A", date: 28, month: 8, service: "hot", site: sites[4], machine: machines[15], vehicle: vehicles[1], people: ["Kaci Ilirjan", "Garbin Thomas", "Mesfef Mohammed"], start: "07:00", note: "CityPump · getto programmato" },
   { id: "JOB-260828-B", date: 28, month: 8, service: "cold", site: sites[5], machine: machines[12], vehicle: vehicles[6], people: [], start: "07:00", note: "Noleggio a freddo · nessun uomo Dalecom" },
-  { id: "JOB-QUEUE-1", date: null, month: null, service: "hot", site: sites[6], machine: machines[15], vehicle: vehicles[1], people: [people[7], people[13]], start: "07:00", note: "Nota programma: getto da confermare" },
+  { id: "JOB-QUEUE-1", date: null, month: null, service: "hot", site: sites[6], machine: machines[15], vehicle: vehicles[1], people: ["Berdaga Mihail", "Berdaga Tudor"], start: "07:00", note: "Nota programma: getto da confermare" },
   { id: "JOB-QUEUE-2", date: null, month: null, service: "cold", site: sites[11], machine: machines[6], vehicle: vehicles[6], people: [], start: "06:30", note: "Getto Boscolo · noleggio a freddo" },
 ];
 
@@ -131,6 +138,8 @@ function ResourceItem({ type, item }: { type: ResourceType; item: Resource }) {
 
 function JobCard({ item, selected, conflict, onSelect, onResourceDrop }: { item: Assignment; selected: boolean; conflict: boolean; onSelect: () => void; onResourceDrop: (type: ResourceType, value: string) => void }) {
   const modeLabel = { cold: "A FREDDO", semi: "SEMIFREDDO", hot: "A CALDO" }[item.service];
+  const safetyBlocked = item.people.filter((person) => safetyCheck(person, item.site).level === "red");
+  const safetyWarning = item.people.filter((person) => safetyCheck(person, item.site).level === "yellow");
   const draggableRow = (type: ResourceType, value: string, label: string) => <small
     className={flowStyles.calendarResource}
     draggable={value !== "Macchina da assegnare" && value !== "Mezzo da assegnare"}
@@ -156,6 +165,7 @@ function JobCard({ item, selected, conflict, onSelect, onResourceDrop }: { item:
     {draggableRow("machine", item.machine, "M")}
     {draggableRow("vehicle", item.vehicle, "V")}
     {item.service === "cold" ? <small className={flowStyles.coldRow}><b>U</b>Nessun uomo · noleggio a freddo</small> : item.people.map((person) => <span key={person}>{draggableRow("person", person, "U")}</span>)}
+    {safetyBlocked.length ? <small className={safetyStyles.safetyBlock}>⛔ SICUREZZA · {safetyBlocked.join(", ")}</small> : safetyWarning.length ? <small className={safetyStyles.safetyWarning}>⚠ SCADENZE · {safetyWarning.join(", ")}</small> : null}
   </article>;
 }
 
@@ -185,6 +195,7 @@ export default function LogisticsPage() {
   const selected = assignments.find((item) => item.id === selectedId) || assignments[0];
   const selectedUnavailable = machineResources.some((item) => item.value === selected.machine && item.status === "service") || vehicleResources.some((item) => item.value === selected.vehicle && item.status === "service");
   const selectedIncomplete = selected.machine === "Macchina da assegnare" || selected.vehicle === "Mezzo da assegnare" || (selected.service !== "cold" && selected.people.length === 0);
+  const selectedSafetyBlocks = selected.people.flatMap((person) => safetyCheck(person, selected.site).level === "red" ? [person] : []);
   const scheduled = assignments.filter((item) => item.date !== null).length;
   const queue = assignments.filter((item) => item.date === null);
   const busyPeople = new Set(assignments.filter((item) => item.date !== null).flatMap((item) => item.people)).size;
@@ -200,12 +211,34 @@ export default function LogisticsPage() {
     setSaved(false);
   };
 
+  const recordSafetyAlert = (person: string, site: string, level: "red" | "yellow", detail: string) => {
+    const key = "dalecom-safety-alerts-v1";
+    let existing: { id: string; person: string; site: string; level: "red" | "yellow"; detail: string; createdAt: string }[] = [];
+    try { existing = JSON.parse(window.localStorage.getItem(key) || "[]"); } catch { existing = []; }
+    const next = [{ id: `ALT-${Date.now()}`, person, site, level, detail, createdAt: new Date().toISOString() }, ...existing].slice(0, 12);
+    window.localStorage.setItem(key, JSON.stringify(next));
+  };
+
   const assignResource = (id: string, type: ResourceType, value: string) => {
     const target = assignments.find((item) => item.id === id);
     if (type === "person" && target?.service === "cold") {
       setNotice("Noleggio a freddo: non è previsto personale Dalecom.");
       window.setTimeout(() => setNotice(""), 2600);
       return;
+    }
+    if (type === "person" && target) {
+      const safety = safetyCheck(value, target.site);
+      if (safety.level === "red") {
+        recordSafetyAlert(value, target.site, "red", safety.missing.join(", "));
+        setNotice(`⛔ ASSEGNAZIONE BLOCCATA · ${value}: ${safety.missing.join(", ")}. Alert inviato a HSE e CEO.`);
+        window.setTimeout(() => setNotice(""), 5200);
+        return;
+      }
+      if (safety.level === "yellow") {
+        recordSafetyAlert(value, target.site, "yellow", safety.warnings.join(", "));
+        setNotice(`⚠ ${value} assegnato con attenzione: ${safety.warnings.join(", ")}. HSE e CEO ricevono l’alert.`);
+        window.setTimeout(() => setNotice(""), 4200);
+      }
     }
     setAssignments((current) => current.map((item) => {
       if (item.id !== id) return item;
@@ -216,6 +249,28 @@ export default function LogisticsPage() {
     }));
     setSelectedId(id);
     setSaved(false);
+  };
+
+  const setPersonSlot = (index: number, value: string) => {
+    if (!value) {
+      updateSelected({ people: selected.people.filter((_, current) => current !== index) });
+      return;
+    }
+    const safety = safetyCheck(value, selected.site);
+    if (safety.level === "red") {
+      recordSafetyAlert(value, selected.site, "red", safety.missing.join(", "));
+      setNotice(`⛔ ASSEGNAZIONE BLOCCATA · ${value}: ${safety.missing.join(", ")}. Alert inviato a HSE e CEO.`);
+      window.setTimeout(() => setNotice(""), 5200);
+      return;
+    }
+    const next = [...selected.people];
+    next[index] = value;
+    updateSelected({ people: next.filter(Boolean) });
+    if (safety.level === "yellow") {
+      recordSafetyAlert(value, selected.site, "yellow", safety.warnings.join(", "));
+      setNotice(`⚠ ${value} assegnato con scadenze da verificare. Alert inviato a HSE e CEO.`);
+      window.setTimeout(() => setNotice(""), 4200);
+    }
   };
 
   const returnToPool = (raw: string, targetType: ResourceType) => {
@@ -319,7 +374,7 @@ export default function LogisticsPage() {
   return <main className={`${styles.page} ${theme.page}`}>
     <header className={`${styles.top} ${theme.top}`}>
       <div className={`${styles.brand} ${theme.brand}`}><i /><b>DALECOM</b><span>LOGISTA</span></div>
-      <nav><a href="/demo">← Regia principale</a><button onClick={save}>{saved ? "✓ Piano salvato" : "Salva pianificazione"}</button></nav>
+      <nav><a href="/demo">← Regia principale</a><a href="/sicurezza">Safety Passport</a><button onClick={save}>{saved ? "✓ Piano salvato" : "Salva pianificazione"}</button></nav>
     </header>
 
     <section className={`${styles.hero} ${theme.hero}`}>
@@ -375,10 +430,10 @@ export default function LogisticsPage() {
         <label><span><i>C</i>Cantiere</span><select value={selected.site} onChange={(event) => updateSelected({ site: event.target.value })}>{sites.map((value) => <option key={value}>{value}</option>)}</select></label>
         <label><span><i>M</i>Macchina</span><select value={selected.machine} onChange={(event) => updateSelected({ machine: event.target.value })}><option>Macchina da assegnare</option>{machineResources.map((item) => <option key={item.value} value={item.value} disabled={item.status === "service"}>{item.value}{item.status === "service" ? " · NON DISPONIBILE" : ""}</option>)}</select></label>
         <label><span><i>V</i>Mezzo</span><select value={selected.vehicle} onChange={(event) => updateSelected({ vehicle: event.target.value })}><option>Mezzo da assegnare</option>{vehicleResources.filter((item) => item.value !== "Mezzo da assegnare").map((item) => <option key={item.value} value={item.value} disabled={item.status === "service"}>{item.value}{item.status === "service" ? " · DA RISOLVERE" : ""}</option>)}</select></label>
-        {selected.service === "cold" ? <div className={flowStyles.noPeople}><b>U · NESSUN UOMO</b><span>Regola automatica del noleggio a freddo.</span></div> : <><label><span><i>U</i>Primo uomo</span><select value={selected.people[0] || ""} onChange={(event) => updateSelected({ people: event.target.value ? [event.target.value, ...selected.people.slice(1)] : selected.people.slice(1) })}><option value="">Da assegnare</option>{people.map((value) => <option key={value}>{value}</option>)}</select></label><label><span>Secondo uomo</span><select value={selected.people[1] || ""} onChange={(event) => updateSelected({ people: event.target.value ? [selected.people[0], event.target.value, ...selected.people.slice(2)].filter(Boolean) : selected.people.filter((_, index) => index !== 1) })}><option value="">Non previsto</option>{people.filter((person) => person !== selected.people[0]).map((value) => <option key={value}>{value}</option>)}</select></label></>}
+        {selected.service === "cold" ? <div className={flowStyles.noPeople}><b>U · NESSUN UOMO</b><span>Regola automatica del noleggio a freddo.</span></div> : <><label><span><i>U</i>Primo uomo</span><select value={selected.people[0] || ""} onChange={(event) => setPersonSlot(0, event.target.value)}><option value="">Da assegnare</option>{people.map((value) => <option key={value} disabled={safetyCheck(value, selected.site).level === "red"}>{value}{safetyCheck(value, selected.site).level === "red" ? " · BLOCCATO SICUREZZA" : safetyCheck(value, selected.site).level === "yellow" ? " · ATTENZIONE" : ""}</option>)}</select></label><label><span>Secondo uomo</span><select value={selected.people[1] || ""} onChange={(event) => setPersonSlot(1, event.target.value)}><option value="">Non previsto</option>{people.filter((person) => person !== selected.people[0]).map((value) => <option key={value} disabled={safetyCheck(value, selected.site).level === "red"}>{value}{safetyCheck(value, selected.site).level === "red" ? " · BLOCCATO SICUREZZA" : safetyCheck(value, selected.site).level === "yellow" ? " · ATTENZIONE" : ""}</option>)}</select></label></>}
         <div className={styles.detailGrid}><label><span>Inizio</span><input type="time" value={selected.start} onChange={(event) => updateSelected({ start: event.target.value })} /></label><label><span>Giorno</span><input type="number" min="1" max={calendarMonths.find((month) => month.number === (selected.month || currentMonth))?.days || 31} value={selected.date || ""} onChange={(event) => updateSelected({ date: event.target.value ? Number(event.target.value) : null, month: event.target.value ? (selected.month || currentMonth) : null })} /></label></div>
         <label><span>Nota operativa</span><textarea value={selected.note} onChange={(event) => updateSelected({ note: event.target.value })} /></label>
-        <div className={`${styles.check} ${conflicts.has(selected.id) || selectedUnavailable || selectedIncomplete ? styles.checkError : ""}`}><i>{conflicts.has(selected.id) || selectedUnavailable || selectedIncomplete ? "!" : "✓"}</i><div><b>{selectedUnavailable || selectedIncomplete ? "Configurazione incompleta" : conflicts.has(selected.id) ? "Risorsa già impegnata" : "Configurazione disponibile"}</b><span>{selectedUnavailable || selectedIncomplete ? "Completa macchina, mezzo e — salvo il freddo — la squadra." : conflicts.has(selected.id) ? "Sposta la commessa o sostituisci la risorsa." : "Nessuna sovrapposizione nella giornata selezionata."}</span></div></div>
+        <div className={`${styles.check} ${conflicts.has(selected.id) || selectedUnavailable || selectedIncomplete || selectedSafetyBlocks.length ? styles.checkError : ""}`}><i>{conflicts.has(selected.id) || selectedUnavailable || selectedIncomplete || selectedSafetyBlocks.length ? "!" : "✓"}</i><div><b>{selectedSafetyBlocks.length ? "Blocco sicurezza attivo" : selectedUnavailable || selectedIncomplete ? "Configurazione incompleta" : conflicts.has(selected.id) ? "Risorsa già impegnata" : "Configurazione disponibile"}</b><span>{selectedSafetyBlocks.length ? `${selectedSafetyBlocks.join(", ")} non possiede tutti i requisiti per ${selected.site}.` : selectedUnavailable || selectedIncomplete ? "Completa macchina, mezzo e — salvo il freddo — la squadra." : conflicts.has(selected.id) ? "Sposta la commessa o sostituisci la risorsa." : "Risorse disponibili e Safety Passport conformi."}</span></div></div>
         <button className={styles.unschedule} onClick={() => move(selected.id, null)}>Rimetti tra le commesse in attesa</button>
       </aside>
     </section>
