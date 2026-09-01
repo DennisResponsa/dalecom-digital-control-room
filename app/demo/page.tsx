@@ -154,6 +154,16 @@ const tools = [
     accent: "disabled",
     disabled: true,
   },
+  {
+    number: "16",
+    eyebrow: "SECURITY CONTROL",
+    title: "TVCC, allarme, controllo accessi",
+    description: "Telecamere, allarmi, drone di verifica, badge digitali, presenze e visitatori in un’unica sala controllo.",
+    action: "Apri la sala sicurezza",
+    href: "/security-control",
+    accent: "orange",
+    disabled: false,
+  },
 ] as const;
 
 function ToolCard({ tool }: { tool: (typeof tools)[number] }) {
