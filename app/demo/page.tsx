@@ -134,6 +134,16 @@ const tools = [
     accent: "orange",
     disabled: false,
   },
+  {
+    number: "14",
+    eyebrow: "ENERGIA · ESG",
+    title: "Energia e sostenibilità",
+    description: "Fotovoltaico, accumulo, consumi, acqua, ricariche e risorse delle sedi controllati in tempo reale.",
+    action: "Apri il controllo energetico",
+    href: "/energia",
+    accent: "green",
+    disabled: false,
+  },
 ] as const;
 
 function ToolCard({ tool }: { tool: (typeof tools)[number] }) {
