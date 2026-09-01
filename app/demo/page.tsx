@@ -144,6 +144,16 @@ const tools = [
     accent: "green",
     disabled: false,
   },
+  {
+    number: "15",
+    eyebrow: "OPPORTUNITÀ PUBBLICHE",
+    title: "Bandi, Gare ed Appalti",
+    description: "Ricerca, valutazione e gestione coordinata delle opportunità, dalla pubblicazione all’aggiudicazione.",
+    action: "",
+    href: "",
+    accent: "disabled",
+    disabled: true,
+  },
 ] as const;
 
 function ToolCard({ tool }: { tool: (typeof tools)[number] }) {
