@@ -1,0 +1,38 @@
+.sitePeriod {
+  color: #6d8790 !important;
+  background: #f7fafb;
+  border-radius: 5px;
+  padding: 3px !important;
+}
+
+.sitePeriod b {
+  background: #e8f2f4 !important;
+  color: #147b92 !important;
+}
+
+.activeSiteDay {
+  background: linear-gradient(180deg, #fff 0, #fff 82%, #e7f6f8 100%);
+}
+
+.periodGrid {
+  margin-top: 4px;
+  padding-top: 2px !important;
+  border-top: 1px solid #e1eaec;
+}
+
+.addDay {
+  appearance: none;
+  margin: 0 13px 8px;
+  width: calc(100% - 26px);
+  border: 1px solid #0b91af;
+  border-radius: 8px;
+  background: #edf9fb;
+  padding: 10px;
+  color: #08758c;
+  font: 900 9px/1 inherit;
+  cursor: pointer;
+}
+
+.addDay:hover {
+  background: #dff4f8;
+}

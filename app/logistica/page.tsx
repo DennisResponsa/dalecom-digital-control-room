@@ -4,14 +4,19 @@ import { useEffect, useMemo, useState } from "react";
 import styles from "./page.module.css";
 import palette from "./palette.module.css";
 import flowStyles from "./workflow.module.css";
+import durationStyles from "./duration.module.css";
 import theme from "./dalecom-theme.module.css";
 import safetyStyles from "./safety.module.css";
 import { employeeNames, safetyCheck } from "../safety-data";
+import { conflictsFor, isValidSitePeriod, isWithinSitePeriod, isoDate, nextSiteDay, partsFromIso, PLANNING_END, PLANNING_START } from "./logic";
 
 type Assignment = {
   id: string;
+  projectId: string;
   date: number | null;
   month: number | null;
+  siteStart: string;
+  siteEnd: string;
   service: "cold" | "semi" | "hot";
   site: string;
   machine: string;
@@ -23,6 +28,7 @@ type Assignment = {
 
 type ResourceType = "site" | "machine" | "vehicle" | "person";
 type Resource = { value: string; status?: "available" | "busy" | "service"; note?: string };
+type SiteResource = Resource & { projectId: string; startDate: string; endDate: string };
 type CalendarView = "month" | "week" | "day";
 type CalendarCell = { day: number; month: number } | null;
 
@@ -57,21 +63,34 @@ const peopleResources: Resource[] = employeeNames.map((value) => {
   if (onLeave) return { value, status: "busy", note: "Ferie nel programma corrente" };
   return { value, status: "available", note: safety.level === "yellow" ? `ATTENZIONE · ${safety.warnings.join(", ")}` : "Safety Passport conforme" };
 });
-const siteResources: Resource[] = ["Varna", "Roma · ColaBeton", "Modena · Vera Costruzioni", "Trieste · Piccola Sicilia", "Vicenza · EdilDesign", "Cittadella", "Bologna · SEAF", "Mantova", "Marghera", "Val d’Ultimo", "Padernello · Capannone", "Venezia · Boscolo"].map((value) => ({ value, status: "available" }));
+const siteResources: SiteResource[] = [
+  ["VARNA", "Varna", "2026-08-24", "2026-10-31"],
+  ["ROMA-COLABETON", "Roma · ColaBeton", "2026-08-24", "2026-09-30"],
+  ["MODENA-VERA", "Modena · Vera Costruzioni", "2026-08-26", "2026-09-18"],
+  ["TRIESTE-PICCOLA", "Trieste · Piccola Sicilia", "2026-08-27", "2026-09-11"],
+  ["VICENZA-EDIL", "Vicenza · EdilDesign", "2026-08-28", "2026-09-25"],
+  ["CITTADELLA", "Cittadella", "2026-08-28", "2026-09-04"],
+  ["BOLOGNA-SEAF", "Bologna · SEAF", "2026-09-01", "2026-10-15"],
+  ["MANTOVA", "Mantova", "2026-09-07", "2026-10-02"],
+  ["MARGHERA", "Marghera", "2026-09-14", "2026-10-23"],
+  ["VAL-ULTIMO", "Val d’Ultimo", "2026-09-21", "2026-10-16"],
+  ["PADERNELLO-CAP", "Padernello · Capannone", "2026-08-01", "2026-10-31"],
+  ["VENEZIA-BOSCOLO", "Venezia · Boscolo", "2026-08-28", "2026-09-30"],
+].map(([projectId, value, startDate, endDate]) => ({ projectId, value, startDate, endDate, status: "available", note: `${startDate.slice(8, 10)}/${startDate.slice(5, 7)} → ${endDate.slice(8, 10)}/${endDate.slice(5, 7)}` }));
 const machines = machineResources.map((item) => item.value);
 const vehicles = vehicleResources.map((item) => item.value);
 const people = peopleResources.map((item) => item.value);
 const sites = siteResources.map((item) => item.value);
 
 const initialAssignments: Assignment[] = [
-  { id: "JOB-260824-A", date: 24, month: 8, service: "hot", site: sites[0], machine: machines[10], vehicle: vehicles[3], people: ["Marconato Ermens", "Buonaiuto Paco", "Sow Moustapha", "Verejan Radu"], start: "06:30", note: "Squadra Varna · programma cantieri" },
-  { id: "JOB-260824-B", date: 24, month: 8, service: "hot", site: sites[1], machine: machines[4], vehicle: vehicles[2], people: ["Toscano Enrico", "Mihali Daniel", "Stecho Dorel"], start: "07:00", note: "ColaBeton · permanenza settimanale" },
-  { id: "JOB-260826", date: 26, month: 8, service: "hot", site: sites[2], machine: machines[15], vehicle: vehicles[1], people: ["Kaci Ilirjan", "Garbin Thomas", "Mesfef Mohammed"], start: "09:00", note: "CityPump · 80 m + 180 m²" },
-  { id: "JOB-260827", date: 27, month: 8, service: "semi", site: sites[3], machine: machines[4], vehicle: vehicles[0], people: ["Loriato Flavio"], start: "05:15", note: "Partenza da Padernello con Eurocargo" },
-  { id: "JOB-260828-A", date: 28, month: 8, service: "hot", site: sites[4], machine: machines[15], vehicle: vehicles[1], people: ["Kaci Ilirjan", "Garbin Thomas", "Mesfef Mohammed"], start: "07:00", note: "CityPump · getto programmato" },
-  { id: "JOB-260828-B", date: 28, month: 8, service: "cold", site: sites[5], machine: machines[12], vehicle: vehicles[6], people: [], start: "07:00", note: "Noleggio a freddo · nessun uomo Dalecom" },
-  { id: "JOB-QUEUE-1", date: null, month: null, service: "hot", site: sites[6], machine: machines[15], vehicle: vehicles[1], people: ["Berdaga Mihail", "Berdaga Tudor"], start: "07:00", note: "Nota programma: getto da confermare" },
-  { id: "JOB-QUEUE-2", date: null, month: null, service: "cold", site: sites[11], machine: machines[6], vehicle: vehicles[6], people: [], start: "06:30", note: "Getto Boscolo · noleggio a freddo" },
+  { id: "JOB-260824-A", projectId: "VARNA", date: 24, month: 8, siteStart: "2026-08-24", siteEnd: "2026-10-31", service: "hot", site: sites[0], machine: machines[10], vehicle: vehicles[3], people: ["Marconato Ermens", "Buonaiuto Paco", "Sow Moustapha", "Verejan Radu"], start: "06:30", note: "Squadra Varna · programma cantieri" },
+  { id: "JOB-260824-B", projectId: "ROMA-COLABETON", date: 24, month: 8, siteStart: "2026-08-24", siteEnd: "2026-09-30", service: "hot", site: sites[1], machine: machines[4], vehicle: vehicles[2], people: ["Toscano Enrico", "Mihali Daniel", "Stecho Dorel"], start: "07:00", note: "ColaBeton · permanenza settimanale" },
+  { id: "JOB-260826", projectId: "MODENA-VERA", date: 26, month: 8, siteStart: "2026-08-26", siteEnd: "2026-09-18", service: "hot", site: sites[2], machine: machines[15], vehicle: vehicles[1], people: ["Kaci Ilirjan", "Garbin Thomas", "Mesfef Mohammed"], start: "09:00", note: "CityPump · 80 m + 180 m²" },
+  { id: "JOB-260827", projectId: "TRIESTE-PICCOLA", date: 27, month: 8, siteStart: "2026-08-27", siteEnd: "2026-09-11", service: "semi", site: sites[3], machine: machines[4], vehicle: vehicles[0], people: ["Loriato Flavio"], start: "05:15", note: "Partenza da Padernello con Eurocargo" },
+  { id: "JOB-260828-A", projectId: "VICENZA-EDIL", date: 28, month: 8, siteStart: "2026-08-28", siteEnd: "2026-09-25", service: "hot", site: sites[4], machine: machines[15], vehicle: vehicles[1], people: ["Kaci Ilirjan", "Garbin Thomas", "Mesfef Mohammed"], start: "07:00", note: "CityPump · getto programmato" },
+  { id: "JOB-260828-B", projectId: "CITTADELLA", date: 28, month: 8, siteStart: "2026-08-28", siteEnd: "2026-09-04", service: "cold", site: sites[5], machine: machines[12], vehicle: vehicles[6], people: [], start: "07:00", note: "Noleggio a freddo · nessun uomo Dalecom" },
+  { id: "JOB-QUEUE-1", projectId: "BOLOGNA-SEAF", date: null, month: null, siteStart: "2026-09-01", siteEnd: "2026-10-15", service: "hot", site: sites[6], machine: machines[15], vehicle: vehicles[1], people: ["Berdaga Mihail", "Berdaga Tudor"], start: "07:00", note: "Nota programma: getto da confermare" },
+  { id: "JOB-QUEUE-2", projectId: "VENEZIA-BOSCOLO", date: null, month: null, siteStart: "2026-08-28", siteEnd: "2026-09-30", service: "cold", site: sites[11], machine: machines[6], vehicle: vehicles[6], people: [], start: "06:30", note: "Getto Boscolo · noleggio a freddo" },
 ];
 
 const weekDays = ["LUN", "MAR", "MER", "GIO", "VEN", "SAB", "DOM"];
@@ -84,22 +103,25 @@ const monthName = (month: number | null) => calendarMonths.find((item) => item.n
 const calendarDate = (month: number, day: number) => new Date(2026, month - 1, day, 12);
 const mondayIndex = (date: Date) => (date.getDay() + 6) % 7;
 const isInsidePlanningRange = (date: Date) => date >= calendarDate(8, 1) && date <= calendarDate(10, 31);
+const displayDate = (value: string) => value ? `${value.slice(8, 10)}/${value.slice(5, 7)}/${value.slice(0, 4)}` : "—";
 
-function conflictsFor(assignments: Assignment[]) {
-  const conflicts = new Set<string>();
-  assignments.filter((item) => item.date !== null).forEach((item, index, dated) => {
-    dated.slice(index + 1).forEach((other) => {
-      if (item.date !== other.date || item.month !== other.month) return;
-      const sharedPerson = item.people.some((person) => other.people.includes(person));
-      const sharedMachine = item.machine !== "Macchina da assegnare" && item.machine === other.machine;
-      const sharedVehicle = item.vehicle !== "Mezzo da assegnare" && item.vehicle === other.vehicle;
-      if (sharedMachine || sharedVehicle || sharedPerson) {
-        conflicts.add(item.id);
-        conflicts.add(other.id);
-      }
-    });
-  });
-  return conflicts;
+function normalizeAssignment(item: Partial<Assignment> & Pick<Assignment, "id" | "site">): Assignment {
+  const site = siteResources.find((resource) => resource.value === item.site);
+  const fallbackDay = item.date && item.month ? isoDate(item.month, item.date) : PLANNING_START;
+  return {
+    ...item,
+    projectId: item.projectId || site?.projectId || item.id,
+    date: item.date ?? null,
+    month: item.month ?? (item.date ? 8 : null),
+    siteStart: item.siteStart || site?.startDate || fallbackDay,
+    siteEnd: item.siteEnd || site?.endDate || fallbackDay,
+    service: item.service || "hot",
+    machine: item.machine || "Macchina da assegnare",
+    vehicle: item.vehicle || "Mezzo da assegnare",
+    people: item.people || [],
+    start: item.start || "07:00",
+    note: item.note || "",
+  };
 }
 
 function resourcePayload(type: ResourceType, value: string) {
@@ -162,6 +184,7 @@ function JobCard({ item, selected, conflict, onSelect, onResourceDrop }: { item:
   >
     <span className={`${styles.jobTime} ${flowStyles.cardHead}`} draggable onDragStart={(event) => { event.stopPropagation(); event.dataTransfer.setData("text/plain", `assignment|${item.id}`); }}><span>{item.start}<i className={flowStyles.dragHandle}>⠿</i></span><i>{conflict ? "CONFLITTO" : modeLabel}</i></span>
     {draggableRow("site", item.site, "C")}
+    <small className={durationStyles.sitePeriod}><b>↔</b>{displayDate(item.siteStart)} — {displayDate(item.siteEnd)}</small>
     {draggableRow("machine", item.machine, "M")}
     {draggableRow("vehicle", item.vehicle, "V")}
     {item.service === "cold" ? <small className={flowStyles.coldRow}><b>U</b>Nessun uomo · noleggio a freddo</small> : item.people.map((person) => <span key={person}>{draggableRow("person", person, "U")}</span>)}
@@ -181,10 +204,10 @@ export default function LogisticsPage() {
   const [calendarView, setCalendarView] = useState<CalendarView>("month");
 
   useEffect(() => {
-    const stored = window.localStorage.getItem("dalecom-logistics-demo-v3");
+    const stored = window.localStorage.getItem("dalecom-logistics-demo-v4") || window.localStorage.getItem("dalecom-logistics-demo-v3");
     if (stored) {
       try {
-        const restored = (JSON.parse(stored) as Assignment[]).map((item) => ({ ...item, month: item.date && !item.month ? 8 : item.month }));
+        const restored = (JSON.parse(stored) as Assignment[]).map((item) => normalizeAssignment(item));
         const frame = window.requestAnimationFrame(() => setAssignments(restored));
         return () => window.cancelAnimationFrame(frame);
       } catch { /* demo fallback */ }
@@ -196,11 +219,19 @@ export default function LogisticsPage() {
   const selectedUnavailable = machineResources.some((item) => item.value === selected.machine && item.status === "service") || vehicleResources.some((item) => item.value === selected.vehicle && item.status === "service");
   const selectedIncomplete = selected.machine === "Macchina da assegnare" || selected.vehicle === "Mezzo da assegnare" || (selected.service !== "cold" && selected.people.length === 0);
   const selectedSafetyBlocks = selected.people.flatMap((person) => safetyCheck(person, selected.site).level === "red" ? [person] : []);
+  const selectedOutsidePeriod = selected.date !== null && selected.month !== null && !isWithinSitePeriod(selected, selected.month, selected.date);
   const scheduled = assignments.filter((item) => item.date !== null).length;
   const queue = assignments.filter((item) => item.date === null);
   const busyPeople = new Set(assignments.filter((item) => item.date !== null).flatMap((item) => item.people)).size;
+  const activeSites = new Set(assignments.map((item) => item.projectId)).size;
 
   const move = (id: string, date: number | null, month: number | null = date ? currentMonth : null) => {
+    const target = assignments.find((item) => item.id === id);
+    if (target && date !== null && month !== null && !isWithinSitePeriod(target, month, date)) {
+      setNotice(`⛔ ${target.site} è attivo dal ${displayDate(target.siteStart)} al ${displayDate(target.siteEnd)}.`);
+      window.setTimeout(() => setNotice(""), 3600);
+      return;
+    }
     setAssignments((current) => current.map((item) => item.id === id ? { ...item, date, month } : item));
     setSelectedId(id);
     setSaved(false);
@@ -211,11 +242,57 @@ export default function LogisticsPage() {
     setSaved(false);
   };
 
+  const updateSitePeriod = (field: "siteStart" | "siteEnd", value: string) => {
+    const start = field === "siteStart" ? value : selected.siteStart;
+    const end = field === "siteEnd" ? value : selected.siteEnd;
+    if (!isValidSitePeriod(start, end)) {
+      setNotice("⛔ Il periodo del cantiere deve essere compreso tra agosto e ottobre 2026, con la fine successiva all’inizio.");
+      window.setTimeout(() => setNotice(""), 4200);
+      return;
+    }
+    const affected = assignments.filter((item) => item.projectId === selected.projectId);
+    const outside = affected.some((item) => item.date !== null && item.month !== null && !isWithinSitePeriod({ siteStart: start, siteEnd: end }, item.month, item.date));
+    if (outside) {
+      setNotice("⛔ Prima sposta le giornate già pianificate che resterebbero fuori dal nuovo periodo.");
+      window.setTimeout(() => setNotice(""), 4200);
+      return;
+    }
+    setAssignments((current) => current.map((item) => item.projectId === selected.projectId ? { ...item, siteStart: start, siteEnd: end } : item));
+    setSaved(false);
+  };
+
+  const addNextWorkday = () => {
+    const next = nextSiteDay(selected);
+    if (!next) {
+      setNotice(selected.date === null ? "Pianifica prima la giornata iniziale del cantiere." : "Non ci sono altre giornate nel periodo del cantiere.");
+      window.setTimeout(() => setNotice(""), 3200);
+      return;
+    }
+    const existing = assignments.find((item) => item.projectId === selected.projectId && item.month === next.month && item.date === next.day);
+    if (existing) {
+      setSelectedId(existing.id);
+      setCurrentMonth(next.month);
+      setFocusDay(next.day);
+      setNotice("La giornata successiva era già pianificata: è stata selezionata.");
+      window.setTimeout(() => setNotice(""), 2600);
+      return;
+    }
+    const copy: Assignment = { ...selected, id: `${selected.projectId}-${next.month}${String(next.day).padStart(2, "0")}-${assignments.length + 1}`, month: next.month, date: next.day };
+    setAssignments((current) => [...current, copy]);
+    setSelectedId(copy.id);
+    setCurrentMonth(next.month);
+    setFocusDay(next.day);
+    setSaved(false);
+    setNotice(`✓ Creata l’assegnazione giornaliera del ${next.day} ${monthName(next.month)}.`);
+    window.setTimeout(() => setNotice(""), 2800);
+  };
+
   const recordSafetyAlert = (person: string, site: string, level: "red" | "yellow", detail: string) => {
     const key = "dalecom-safety-alerts-v1";
     let existing: { id: string; person: string; site: string; level: "red" | "yellow"; detail: string; createdAt: string }[] = [];
     try { existing = JSON.parse(window.localStorage.getItem(key) || "[]"); } catch { existing = []; }
-    const next = [{ id: `ALT-${Date.now()}`, person, site, level, detail, createdAt: new Date().toISOString() }, ...existing].slice(0, 12);
+    const createdAt = new Date().toISOString();
+    const next = [{ id: `ALT-${createdAt}-${existing.length + 1}`, person, site, level, detail, createdAt }, ...existing].slice(0, 12);
     window.localStorage.setItem(key, JSON.stringify(next));
   };
 
@@ -243,7 +320,10 @@ export default function LogisticsPage() {
     setAssignments((current) => current.map((item) => {
       if (item.id !== id) return item;
       if (type === "person") return { ...item, people: item.people.includes(value) ? item.people : [...item.people, value] };
-      if (type === "site") return { ...item, site: value };
+      if (type === "site") {
+        const site = siteResources.find((resource) => resource.value === value);
+        return site ? { ...item, projectId: site.projectId, site: value, siteStart: site.startDate, siteEnd: site.endDate } : item;
+      }
       if (type === "machine") return { ...item, machine: value };
       return { ...item, vehicle: value };
     }));
@@ -306,10 +386,26 @@ export default function LogisticsPage() {
       return;
     }
     const id = `JOB-DRAFT-${month}${String(date).padStart(2, "0")}-${assignments.length + 1}`;
+    const site = siteResources.find((item) => item.value === payload.value)!;
+    if (!isWithinSitePeriod({ siteStart: site.startDate, siteEnd: site.endDate }, month, date)) {
+      setNotice(`⛔ ${site.value} è attivo dal ${displayDate(site.startDate)} al ${displayDate(site.endDate)}.`);
+      window.setTimeout(() => setNotice(""), 3600);
+      return;
+    }
+    const existing = assignments.find((item) => item.projectId === site.projectId && item.month === month && item.date === date);
+    if (existing) {
+      setSelectedId(existing.id);
+      setNotice("Questa giornata del cantiere era già pianificata: è stata selezionata.");
+      window.setTimeout(() => setNotice(""), 2800);
+      return;
+    }
     const draft: Assignment = {
       id,
+      projectId: site.projectId,
       date,
       month,
+      siteStart: site.startDate,
+      siteEnd: site.endDate,
       service: "hot",
       site: payload.value,
       machine: "Macchina da assegnare",
@@ -324,9 +420,34 @@ export default function LogisticsPage() {
   };
 
   const save = () => {
-    window.localStorage.setItem("dalecom-logistics-demo-v3", JSON.stringify(assignments));
+    window.localStorage.setItem("dalecom-logistics-demo-v4", JSON.stringify(assignments));
     setSaved(true);
     window.setTimeout(() => setSaved(false), 2200);
+  };
+
+  const selectSite = (value: string) => {
+    const site = siteResources.find((item) => item.value === value);
+    if (!site) return;
+    const scheduledOutside = selected.date !== null && selected.month !== null
+      && !isWithinSitePeriod({ siteStart: site.startDate, siteEnd: site.endDate }, selected.month, selected.date);
+    if (scheduledOutside) {
+      setNotice(`⛔ Questa giornata non rientra nel periodo di ${site.value}: ${displayDate(site.startDate)} — ${displayDate(site.endDate)}.`);
+      window.setTimeout(() => setNotice(""), 3800);
+      return;
+    }
+    updateSelected({ projectId: site.projectId, site: value, siteStart: site.startDate, siteEnd: site.endDate });
+  };
+
+  const selectWorkday = (value: string) => {
+    const parts = partsFromIso(value);
+    if (!parts || !isWithinSitePeriod(selected, parts.month, parts.day)) {
+      setNotice(`⛔ La giornata deve rientrare nel periodo ${displayDate(selected.siteStart)} — ${displayDate(selected.siteEnd)}.`);
+      window.setTimeout(() => setNotice(""), 3600);
+      return;
+    }
+    updateSelected({ month: parts.month, date: parts.day });
+    setCurrentMonth(parts.month);
+    setFocusDay(parts.day);
   };
 
   const activeMonth = calendarMonths.find((item) => item.number === currentMonth) || calendarMonths[0];
@@ -378,13 +499,13 @@ export default function LogisticsPage() {
     </header>
 
     <section className={`${styles.hero} ${theme.hero}`}>
-      <div><small>REGIA LOGISTICA · CALENDARIO OPERATIVO</small><h1>Quattro risorse.<br /><em>Un solo calendario.</em></h1><p>Lavora per mese, settimana o giornata. Macchina, mezzo, uomini e cantiere restano collegati; le sovrapposizioni vengono segnalate subito.</p></div>
+      <div><small>REGIA LOGISTICA · CALENDARIO OPERATIVO</small><h1>Un cantiere nel tempo.<br /><em>Risorse giorno per giorno.</em></h1><p>Definisci inizio e fine del cantiere, poi assegna ogni giornata a macchina, mezzo e uomini. Il sistema blocca date fuori periodo e segnala subito le sovrapposizioni.</p></div>
       <div className={`${styles.legend} ${theme.legend}`}><span><i className={styles.okDot} />Disponibile</span><span><i className={styles.warnDot} />Conflitto risorse</span><b>Agosto — ottobre 2026</b></div>
     </section>
 
     <section className={`${styles.kpis} ${theme.kpis}`}>
-      <article><small>COMMESSE PIANIFICATE</small><b>{scheduled}</b><span>nel periodo</span></article>
-      <article><small>DA COLLOCARE</small><b>{queue.length}</b><span>richieste in attesa</span></article>
+      <article><small>CANTIERI ATTIVI</small><b>{activeSites}</b><span>con data inizio/fine</span></article>
+      <article><small>GIORNATE PIANIFICATE</small><b>{scheduled}</b><span>{queue.length} ancora da collocare</span></article>
       <article><small>PERSONE IMPEGNATE</small><b>{busyPeople}</b><span>su {people.length} disponibili</span></article>
       <article className={conflicts.size ? styles.alertKpi : ""}><small>CONFLITTI APERTI</small><b>{conflicts.size}</b><span>{conflicts.size ? "da risolvere" : "piano coerente"}</span></article>
     </section>
@@ -413,7 +534,7 @@ export default function LogisticsPage() {
         <div className={`${styles.weekHeader} ${theme.weekHeader} ${calendarView === "day" ? theme.oneColumn : ""}`}>{visibleWeekDays.map((day) => <b key={day}>{day}</b>)}</div>
         <div className={`${styles.calendar} ${calendarView === "week" ? theme.weekCalendar : ""} ${calendarView === "day" ? theme.dayCalendar : ""}`}>
           {calendarCells.map((cell, index) => cell === null ? <div className={styles.blank} key={`blank-${index}`} /> : <div
-            className={`${styles.day} ${theme.day} ${mondayIndex(calendarDate(cell.month, cell.day)) > 4 ? styles.weekend : ""}`}
+            className={`${styles.day} ${theme.day} ${mondayIndex(calendarDate(cell.month, cell.day)) > 4 ? styles.weekend : ""} ${isWithinSitePeriod(selected, cell.month, cell.day) ? durationStyles.activeSiteDay : ""}`}
             key={`${cell.month}-${cell.day}`}
             onDragOver={(event) => event.preventDefault()}
             onDrop={(event) => dropOnDay(event.dataTransfer.getData("text/plain"), cell.day, cell.month)}
@@ -425,16 +546,18 @@ export default function LogisticsPage() {
       </section>
 
       <aside className={`${styles.inspector} ${theme.panel}`}>
-        <header><small>DETTAGLIO COMMESSA</small><b>{selected.id}</b><span>{selected.date ? `${selected.date} ${monthName(selected.month)} 2026` : "Non pianificata"}</span></header>
+        <header><small>DETTAGLIO GIORNATA</small><b>{selected.site}</b><span>{selected.date ? `${selected.date} ${monthName(selected.month)} 2026 · ${selected.id}` : `${selected.id} · Non pianificata`}</span></header>
         <label><span>Formula di noleggio</span><select value={selected.service} onChange={(event) => { const service = event.target.value as Assignment["service"]; updateSelected({ service, people: service === "cold" ? [] : selected.people }); }}><option value="cold">A freddo · nessun uomo</option><option value="semi">Semifreddo</option><option value="hot">A caldo</option></select></label>
-        <label><span><i>C</i>Cantiere</span><select value={selected.site} onChange={(event) => updateSelected({ site: event.target.value })}>{sites.map((value) => <option key={value}>{value}</option>)}</select></label>
+        <label><span><i>C</i>Cantiere</span><select value={selected.site} onChange={(event) => selectSite(event.target.value)}>{sites.map((value) => <option key={value}>{value}</option>)}</select></label>
+        <div className={`${styles.detailGrid} ${durationStyles.periodGrid}`}><label><span>Inizio cantiere</span><input type="date" min={PLANNING_START} max={PLANNING_END} value={selected.siteStart} onChange={(event) => updateSitePeriod("siteStart", event.target.value)} /></label><label><span>Fine cantiere</span><input type="date" min={PLANNING_START} max={PLANNING_END} value={selected.siteEnd} onChange={(event) => updateSitePeriod("siteEnd", event.target.value)} /></label></div>
         <label><span><i>M</i>Macchina</span><select value={selected.machine} onChange={(event) => updateSelected({ machine: event.target.value })}><option>Macchina da assegnare</option>{machineResources.map((item) => <option key={item.value} value={item.value} disabled={item.status === "service"}>{item.value}{item.status === "service" ? " · NON DISPONIBILE" : ""}</option>)}</select></label>
         <label><span><i>V</i>Mezzo</span><select value={selected.vehicle} onChange={(event) => updateSelected({ vehicle: event.target.value })}><option>Mezzo da assegnare</option>{vehicleResources.filter((item) => item.value !== "Mezzo da assegnare").map((item) => <option key={item.value} value={item.value} disabled={item.status === "service"}>{item.value}{item.status === "service" ? " · DA RISOLVERE" : ""}</option>)}</select></label>
         {selected.service === "cold" ? <div className={flowStyles.noPeople}><b>U · NESSUN UOMO</b><span>Regola automatica del noleggio a freddo.</span></div> : <><label><span><i>U</i>Primo uomo</span><select value={selected.people[0] || ""} onChange={(event) => setPersonSlot(0, event.target.value)}><option value="">Da assegnare</option>{people.map((value) => <option key={value} disabled={safetyCheck(value, selected.site).level === "red"}>{value}{safetyCheck(value, selected.site).level === "red" ? " · BLOCCATO SICUREZZA" : safetyCheck(value, selected.site).level === "yellow" ? " · ATTENZIONE" : ""}</option>)}</select></label><label><span>Secondo uomo</span><select value={selected.people[1] || ""} onChange={(event) => setPersonSlot(1, event.target.value)}><option value="">Non previsto</option>{people.filter((person) => person !== selected.people[0]).map((value) => <option key={value} disabled={safetyCheck(value, selected.site).level === "red"}>{value}{safetyCheck(value, selected.site).level === "red" ? " · BLOCCATO SICUREZZA" : safetyCheck(value, selected.site).level === "yellow" ? " · ATTENZIONE" : ""}</option>)}</select></label></>}
-        <div className={styles.detailGrid}><label><span>Inizio</span><input type="time" value={selected.start} onChange={(event) => updateSelected({ start: event.target.value })} /></label><label><span>Giorno</span><input type="number" min="1" max={calendarMonths.find((month) => month.number === (selected.month || currentMonth))?.days || 31} value={selected.date || ""} onChange={(event) => updateSelected({ date: event.target.value ? Number(event.target.value) : null, month: event.target.value ? (selected.month || currentMonth) : null })} /></label></div>
+        <div className={styles.detailGrid}><label><span>Ora inizio</span><input type="time" value={selected.start} onChange={(event) => updateSelected({ start: event.target.value })} /></label><label><span>Giornata assegnata</span><input type="date" min={selected.siteStart} max={selected.siteEnd} value={selected.date !== null && selected.month !== null ? isoDate(selected.month, selected.date) : ""} onChange={(event) => event.target.value ? selectWorkday(event.target.value) : move(selected.id, null)} /></label></div>
         <label><span>Nota operativa</span><textarea value={selected.note} onChange={(event) => updateSelected({ note: event.target.value })} /></label>
-        <div className={`${styles.check} ${conflicts.has(selected.id) || selectedUnavailable || selectedIncomplete || selectedSafetyBlocks.length ? styles.checkError : ""}`}><i>{conflicts.has(selected.id) || selectedUnavailable || selectedIncomplete || selectedSafetyBlocks.length ? "!" : "✓"}</i><div><b>{selectedSafetyBlocks.length ? "Blocco sicurezza attivo" : selectedUnavailable || selectedIncomplete ? "Configurazione incompleta" : conflicts.has(selected.id) ? "Risorsa già impegnata" : "Configurazione disponibile"}</b><span>{selectedSafetyBlocks.length ? `${selectedSafetyBlocks.join(", ")} non possiede tutti i requisiti per ${selected.site}.` : selectedUnavailable || selectedIncomplete ? "Completa macchina, mezzo e — salvo il freddo — la squadra." : conflicts.has(selected.id) ? "Sposta la commessa o sostituisci la risorsa." : "Risorse disponibili e Safety Passport conformi."}</span></div></div>
-        <button className={styles.unschedule} onClick={() => move(selected.id, null)}>Rimetti tra le commesse in attesa</button>
+        <div className={`${styles.check} ${conflicts.has(selected.id) || selectedUnavailable || selectedIncomplete || selectedSafetyBlocks.length ? styles.checkError : ""}`}><i>{conflicts.has(selected.id) || selectedUnavailable || selectedIncomplete || selectedSafetyBlocks.length ? "!" : "✓"}</i><div><b>{selectedOutsidePeriod ? "Giornata fuori dal periodo" : selectedSafetyBlocks.length ? "Blocco sicurezza attivo" : selectedUnavailable || selectedIncomplete ? "Configurazione incompleta" : conflicts.has(selected.id) ? "Risorsa già impegnata" : "Configurazione disponibile"}</b><span>{selectedOutsidePeriod ? `Sposta la giornata tra ${displayDate(selected.siteStart)} e ${displayDate(selected.siteEnd)}.` : selectedSafetyBlocks.length ? `${selectedSafetyBlocks.join(", ")} non possiede tutti i requisiti per ${selected.site}.` : selectedUnavailable || selectedIncomplete ? "Completa macchina, mezzo e — salvo il freddo — la squadra." : conflicts.has(selected.id) ? "Sposta la giornata o sostituisci la risorsa." : "Risorse disponibili e Safety Passport conformi per questa giornata."}</span></div></div>
+        <button className={durationStyles.addDay} onClick={addNextWorkday}>+ Aggiungi giornata successiva</button>
+        <button className={styles.unschedule} onClick={() => move(selected.id, null)}>Rimetti questa giornata in attesa</button>
       </aside>
     </section>
     <footer className={styles.footer}><span>Demo Dalecom · pianificazione locale dimostrativa</span><b>Predisposto per disponibilità e commesse da 1C</b></footer>
