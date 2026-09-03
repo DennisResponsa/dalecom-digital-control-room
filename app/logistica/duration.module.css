@@ -33,6 +33,22 @@
   cursor: pointer;
 }
 
+.publishApp {
+  width: 100%;
+  border: 0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #f36c21, #dc4f09);
+  color: #fff;
+  font: 800 13px/1.2 inherit;
+  letter-spacing: .02em;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(243, 108, 33, .24);
+}
+
+.publishApp:hover { transform: translateY(-1px); }
+.publishApp:disabled { cursor: wait; opacity: .68; transform: none; }
+
 .addDay:hover {
   background: #dff4f8;
 }

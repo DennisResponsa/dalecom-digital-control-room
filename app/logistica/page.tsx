@@ -56,7 +56,9 @@ const vehicleResources: Resource[] = [
   { value: "GC589XY · furgone", status: "available" }, { value: "FW903KV · autocarro", status: "available" },
   { value: "Mezzo da assegnare", status: "service", note: "Scelta necessaria" },
 ];
-const peopleResources: Resource[] = employeeNames.map((value) => {
+const logisticsPeople = ["Mario Rossi", ...employeeNames.filter((value) => value !== "Mario Rossi")];
+const peopleResources: Resource[] = logisticsPeople.map((value) => {
+  if (value === "Mario Rossi") return { value, status: "available", note: "Profilo demo collegato all’app Dalecom" };
   const safety = safetyCheck(value);
   const onLeave = ["Naoussi Carlo", "Cani Tonin", "Buonaiuto Paco", "Verejan Radu", "Berdaga Maxim", "Berdaga Mihail", "Ibrahima Ndiaye"].includes(value);
   if (safety.level === "red") return { value, status: "service", note: `SICUREZZA · ${safety.missing.join(", ")}` };
@@ -76,6 +78,7 @@ const siteResources: SiteResource[] = [
   ["VAL-ULTIMO", "Val d’Ultimo", "2026-09-21", "2026-10-16"],
   ["PADERNELLO-CAP", "Padernello · Capannone", "2026-08-01", "2026-10-31"],
   ["VENEZIA-BOSCOLO", "Venezia · Boscolo", "2026-08-28", "2026-09-30"],
+  ["CANTIERE-Z-MI", "Cantiere Z · Milano", "2026-09-04", "2026-09-10"],
 ].map(([projectId, value, startDate, endDate]) => ({ projectId, value, startDate, endDate, status: "available", note: `${startDate.slice(8, 10)}/${startDate.slice(5, 7)} → ${endDate.slice(8, 10)}/${endDate.slice(5, 7)}` }));
 const machines = machineResources.map((item) => item.value);
 const vehicles = vehicleResources.map((item) => item.value);
@@ -83,6 +86,21 @@ const people = peopleResources.map((item) => item.value);
 const sites = siteResources.map((item) => item.value);
 
 const initialAssignments: Assignment[] = [
+  ...Array.from({ length: 7 }, (_, index): Assignment => ({
+    id: `JOB-MARIO-09${String(4 + index).padStart(2, "0")}`,
+    projectId: "CANTIERE-Z-MI",
+    date: 4 + index,
+    month: 9,
+    siteStart: "2026-09-04",
+    siteEnd: "2026-09-10",
+    service: "hot",
+    site: "Cantiere Z · Milano",
+    machine: "PCA TB30 #160 · Padernello",
+    vehicle: "Furgone logistica · Padernello",
+    people: ["Mario Rossi"],
+    start: "07:00",
+    note: "Demo operativa · assegnazione collegata all’app Mario Rossi",
+  })),
   { id: "JOB-260824-A", projectId: "VARNA", date: 24, month: 8, siteStart: "2026-08-24", siteEnd: "2026-10-31", service: "hot", site: sites[0], machine: machines[10], vehicle: vehicles[3], people: ["Marconato Ermens", "Buonaiuto Paco", "Sow Moustapha", "Verejan Radu"], start: "06:30", note: "Squadra Varna · programma cantieri" },
   { id: "JOB-260824-B", projectId: "ROMA-COLABETON", date: 24, month: 8, siteStart: "2026-08-24", siteEnd: "2026-09-30", service: "hot", site: sites[1], machine: machines[4], vehicle: vehicles[2], people: ["Toscano Enrico", "Mihali Daniel", "Stecho Dorel"], start: "07:00", note: "ColaBeton · permanenza settimanale" },
   { id: "JOB-260826", projectId: "MODENA-VERA", date: 26, month: 8, siteStart: "2026-08-26", siteEnd: "2026-09-18", service: "hot", site: sites[2], machine: machines[15], vehicle: vehicles[1], people: ["Kaci Ilirjan", "Garbin Thomas", "Mesfef Mohammed"], start: "09:00", note: "CityPump · 80 m + 180 m²" },
@@ -194,21 +212,24 @@ function JobCard({ item, selected, conflict, onSelect, onResourceDrop }: { item:
 
 export default function LogisticsPage() {
   const [assignments, setAssignments] = useState<Assignment[]>(initialAssignments);
-  const [selectedId, setSelectedId] = useState(initialAssignments[0].id);
+  const [selectedId, setSelectedId] = useState("JOB-MARIO-0904");
   const [saved, setSaved] = useState(false);
   const [search, setSearch] = useState("");
   const [phase, setPhase] = useState<"sites" | "assets" | "people">("sites");
   const [notice, setNotice] = useState("");
-  const [currentMonth, setCurrentMonth] = useState(8);
-  const [focusDay, setFocusDay] = useState(24);
+  const [currentMonth, setCurrentMonth] = useState(9);
+  const [focusDay, setFocusDay] = useState(4);
   const [calendarView, setCalendarView] = useState<CalendarView>("month");
+  const [publishingApp, setPublishingApp] = useState(false);
 
   useEffect(() => {
     const stored = window.localStorage.getItem("dalecom-logistics-demo-v4") || window.localStorage.getItem("dalecom-logistics-demo-v3");
     if (stored) {
       try {
         const restored = (JSON.parse(stored) as Assignment[]).map((item) => normalizeAssignment(item));
-        const frame = window.requestAnimationFrame(() => setAssignments(restored));
+        const demoDays = initialAssignments.filter((item) => item.id.startsWith("JOB-MARIO-"));
+        const merged = [...restored, ...demoDays.filter((day) => !restored.some((item) => item.id === day.id))];
+        const frame = window.requestAnimationFrame(() => setAssignments(merged));
         return () => window.cancelAnimationFrame(frame);
       } catch { /* demo fallback */ }
     }
@@ -425,6 +446,54 @@ export default function LogisticsPage() {
     window.setTimeout(() => setSaved(false), 2200);
   };
 
+  const publishToApp = async () => {
+    if (selected.date === null || selected.month === null) {
+      setNotice("⛔ Prima assegna la giornata al calendario.");
+      return;
+    }
+    if (!selected.people.includes("Mario Rossi")) {
+      setNotice("⛔ Per inviare questa giornata all’app assegna Mario Rossi alla squadra.");
+      return;
+    }
+    if (selectedUnavailable || selectedIncomplete || selectedOutsidePeriod
+        || selectedSafetyBlocks.length || conflicts.has(selected.id)) {
+      setNotice("⛔ Risolvi prima le anomalie della giornata selezionata.");
+      return;
+    }
+    setPublishingApp(true);
+    try {
+      const response = await fetch("/api/operator/assignment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employeeId: "MARIO_R_084",
+          employeeName: "Mario Rossi",
+          assignmentId: selected.id,
+          projectId: selected.projectId,
+          orderId: selected.projectId === "CANTIERE-Z-MI" ? "8456" : selected.id,
+          siteName: selected.site,
+          siteStart: selected.siteStart,
+          siteEnd: selected.siteEnd,
+          workdayDate: isoDate(selected.month, selected.date),
+          teamName: selected.people.join(" · "),
+          machineName: selected.machine,
+          vehicleName: selected.vehicle,
+          note: selected.note,
+          safetyCompliant: true,
+        }),
+      });
+      const result = await response.json() as { success?: boolean; error?: string };
+      if (!response.ok || !result.success) throw new Error(result.error || "Invio non riuscito");
+      save();
+      setNotice(`✓ Giornata inviata all’app di Mario Rossi · ${selected.date} ${monthName(selected.month)}.`);
+    } catch (error) {
+      setNotice(`⛔ ${error instanceof Error ? error.message : "Invio all’app non riuscito"}`);
+    } finally {
+      setPublishingApp(false);
+      window.setTimeout(() => setNotice(""), 5000);
+    }
+  };
+
   const selectSite = (value: string) => {
     const site = siteResources.find((item) => item.value === value);
     if (!site) return;
@@ -556,10 +625,11 @@ export default function LogisticsPage() {
         <div className={styles.detailGrid}><label><span>Ora inizio</span><input type="time" value={selected.start} onChange={(event) => updateSelected({ start: event.target.value })} /></label><label><span>Giornata assegnata</span><input type="date" min={selected.siteStart} max={selected.siteEnd} value={selected.date !== null && selected.month !== null ? isoDate(selected.month, selected.date) : ""} onChange={(event) => event.target.value ? selectWorkday(event.target.value) : move(selected.id, null)} /></label></div>
         <label><span>Nota operativa</span><textarea value={selected.note} onChange={(event) => updateSelected({ note: event.target.value })} /></label>
         <div className={`${styles.check} ${conflicts.has(selected.id) || selectedUnavailable || selectedIncomplete || selectedSafetyBlocks.length ? styles.checkError : ""}`}><i>{conflicts.has(selected.id) || selectedUnavailable || selectedIncomplete || selectedSafetyBlocks.length ? "!" : "✓"}</i><div><b>{selectedOutsidePeriod ? "Giornata fuori dal periodo" : selectedSafetyBlocks.length ? "Blocco sicurezza attivo" : selectedUnavailable || selectedIncomplete ? "Configurazione incompleta" : conflicts.has(selected.id) ? "Risorsa già impegnata" : "Configurazione disponibile"}</b><span>{selectedOutsidePeriod ? `Sposta la giornata tra ${displayDate(selected.siteStart)} e ${displayDate(selected.siteEnd)}.` : selectedSafetyBlocks.length ? `${selectedSafetyBlocks.join(", ")} non possiede tutti i requisiti per ${selected.site}.` : selectedUnavailable || selectedIncomplete ? "Completa macchina, mezzo e — salvo il freddo — la squadra." : conflicts.has(selected.id) ? "Sposta la giornata o sostituisci la risorsa." : "Risorse disponibili e Safety Passport conformi per questa giornata."}</span></div></div>
+        <button className={durationStyles.publishApp} disabled={publishingApp} onClick={publishToApp}>{publishingApp ? "Invio in corso…" : "Invia all’app · Mario Rossi"}</button>
         <button className={durationStyles.addDay} onClick={addNextWorkday}>+ Aggiungi giornata successiva</button>
         <button className={styles.unschedule} onClick={() => move(selected.id, null)}>Rimetti questa giornata in attesa</button>
       </aside>
     </section>
-    <footer className={styles.footer}><span>Demo Dalecom · pianificazione locale dimostrativa</span><b>Predisposto per disponibilità e commesse da 1C</b></footer>
+    <footer className={styles.footer}><span>Demo Dalecom · Regia collegata all’app di Mario Rossi</span><b>Predisposto per disponibilità e commesse da 1C</b></footer>
   </main>;
 }
