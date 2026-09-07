@@ -1,0 +1,43 @@
+.verifiedStrip {
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid #42ca9130;
+  border-radius: 11px;
+  background: linear-gradient(120deg, #10352d, #0c2934);
+}
+.verifiedStrip > header {
+  margin-bottom: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.verifiedStrip > header small, .verifiedStrip > header b { display: block; }
+.verifiedStrip > header small { color: #4fd59e; font-size: .6rem; font-weight: 900; letter-spacing: .12em; }
+.verifiedStrip > header b { margin-top: 3px; font-size: .8rem; }
+.verifiedStrip > header > span { color: #74968a; font-size: .62rem; }
+.verifiedStrip > div { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.verifiedStrip button {
+  padding: 10px;
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #ffffff10;
+  border-radius: 8px;
+  color: #dce9ee;
+  background: #0a222b;
+  text-align: left;
+  cursor: pointer;
+}
+.verifiedStrip button:hover { border-color: #45ce96; transform: translateY(-1px); }
+.verifiedStrip button > i { width: 25px; height: 25px; display: grid; place-items: center; border-radius: 50%; color: #09252c; background: #46ce97; font-size: .65rem; font-style: normal; font-weight: 900; }
+.verifiedStrip button span small, .verifiedStrip button span b, .verifiedStrip button span em, .verifiedStrip button strong small { display: block; }
+.verifiedStrip button span small { color: #71908a; font-size: .52rem; }
+.verifiedStrip button span b { margin: 3px 0; font-size: .68rem; }
+.verifiedStrip button span em { color: #8ba19a; font-size: .55rem; font-style: normal; }
+.verifiedStrip button strong { max-width: 115px; color: #4ed19b; font-size: .6rem; text-align: right; }
+.verifiedStrip button strong small { margin-top: 5px; color: #78939b; font-size: .53rem; }
+.officialBadge { padding: 3px 5px; border-radius: 7px; color: #4bd39b; background: #153a30; font-size: .48rem; }
+.officialLink { display: inline-block; margin-top: 8px; padding: 6px 8px; border: 1px solid #42ca9140; border-radius: 6px; color: #4dd39c; background: #12352d; text-decoration: none; font-size: .61rem; font-weight: 900; }
+@media(max-width: 1250px) { .verifiedStrip > div { grid-template-columns: 1fr; } }
+@media(max-width: 600px) { .verifiedStrip > header { align-items: flex-start; gap: 6px; flex-direction: column; } }
