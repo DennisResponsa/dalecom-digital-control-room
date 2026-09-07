@@ -117,12 +117,12 @@ const tools = [
   {
     number: "12",
     eyebrow: "MARKETING",
-    title: "Marketing",
-    description: "Campagne, contenuti e opportunità commerciali coordinati con clienti, preventivi e risultati reali.",
-    action: "",
-    href: "",
-    accent: "disabled",
-    disabled: true,
+    title: "Marketing Control Center",
+    description: "Contenuti, social, sito, cataloghi e campagne collegati a lead, preventivi e fatturato reale.",
+    action: "Apri il marketing",
+    href: "/marketing",
+    accent: "orange",
+    disabled: false,
   },
   {
     number: "13",

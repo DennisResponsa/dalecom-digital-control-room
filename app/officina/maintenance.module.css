@@ -1,0 +1,40 @@
+.monthButton { cursor: pointer; }
+.monthButton:disabled { opacity: .25; cursor: not-allowed; }
+
+.maintenanceJobCard { cursor: grab; border-left-width: 4px; }
+.typeOrdinaria { border-left-color: #1597b4; background: #f0fafb; }
+.typeStraordinaria { border-left-color: #f06b22; background: #fff7f0; }
+.typeRevisione { border-left-color: #7a62ca; background: #f7f4ff; }
+.typeLavaggio { border-left-color: #24aebc; background: #effbfc; }
+
+.readinessBlocked { background: #fff1ef !important; color: #a7352d !important; }
+
+.workOrder {
+  border: 1px solid #d8e5e8;
+  border-radius: 8px;
+  background: #f7fafb;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.workOrder b { font-size: 9px; color: #0b6f88; }
+.workOrder span, .workOrder small { font-size: 7px; color: #607984; }
+
+.removeJob {
+  width: 100%;
+  margin: 4px 0;
+  border: 0;
+  border-radius: 5px;
+  background: #e8f2f4;
+  color: #466773;
+  padding: 4px;
+  font-size: 6.5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.removeJob:hover { background: #fce8dc; color: #b64c16; }
+
+.assetFilters { padding: 8px 10px 0; display: flex; flex-wrap: wrap; gap: 4px; }
+.assetFilters button { padding: 5px 7px; border: 1px solid #cfdee2; border-radius: 12px; color: #607984; background: #fff; font-size: 6px; font-weight: 900; cursor: pointer; }
+.assetFilters .assetFilterActive { border-color: #087f9f; color: #fff; background: #087f9f; }
