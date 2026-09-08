@@ -51,3 +51,7 @@ Il progetto include test automatici per le regole economiche del preventivatore,
 Non inserire password, token o chiavi API nel codice o nei commit. Utilizzare esclusivamente segreti d'ambiente lato server.
 
 Progetto Dalecom - powered by Dennis e Thomas.
+
+## Accesso alternativo
+
+GitHub Pages espone un ingresso alternativo alla regia completa. Il backend, le API e i segreti restano nell'ambiente server Dalecom: non vengono duplicati né pubblicati nel repository.
