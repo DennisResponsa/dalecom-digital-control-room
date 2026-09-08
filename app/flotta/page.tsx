@@ -44,6 +44,7 @@ const operatingMachines = [
 ] as const;
 
 const number = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 1 });
+const fuelPrice = new Intl.NumberFormat("it-IT", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 
 const hc605Incident = {
   vehicle: "HC605EZ",
@@ -62,8 +63,10 @@ const hc605Incident = {
   fuelActualMaxL: 12.5,
   fuelAlternativeMinL: 6.6,
   fuelAlternativeMaxL: 8.1,
-  avoidableCostMinEuro: 17.8,
-  avoidableCostMaxEuro: 19.5,
+  dieselPriceEuro: 2.158,
+  dieselPriceDate: "08/09/2026",
+  avoidableCostMinEuro: 19.8,
+  avoidableCostMaxEuro: 22,
 } as const;
 
 function value(input: number | null, suffix: string) {
@@ -245,7 +248,7 @@ export default function FleetPage() {
                   <div><small>CARBURANTE NON RISPARMIATO</small><strong>+4,4–5,4 l</strong></div>
                   <div className={styles.totalWaste}><small>COSTO EVITABILE · UN VIAGGIO</small><strong>€ {number.format(hc605Incident.avoidableCostMinEuro)}–{number.format(hc605Incident.avoidableCostMaxEuro)}</strong></div>
                 </div>
-                <div className={styles.projection}><b>PROIEZIONE DEMO · 20 VIAGGI SIMILI/MESE</b><span>€ 356–390/mese · € 4.270–4.680/anno di costi evitabili</span><em>Carburante stimato a € 1,70/l. Pedaggi verificati sui calcolatori ufficiali.</em></div>
+                <div className={styles.projection}><b>PROIEZIONE DEMO · 20 VIAGGI SIMILI/MESE</b><span>€ 396–439/mese · € 4.751–5.269/anno di costi evitabili</span><em>Gasolio self Veneto € {fuelPrice.format(hc605Incident.dieselPriceEuro)}/l · MIMIT {hc605Incident.dieselPriceDate}. Pedaggi verificati sui calcolatori ufficiali.</em></div>
               </section>
             </>
           ) : (
@@ -309,7 +312,7 @@ export default function FleetPage() {
                   <div><small>CARBURANTE NON RISPARMIATO</small><strong>+4,4–5,4 l</strong></div>
                   <div className={styles.totalWaste}><small>COSTO EVITABILE · UN VIAGGIO</small><strong>€ {number.format(hc605Incident.avoidableCostMinEuro)}–{number.format(hc605Incident.avoidableCostMaxEuro)}</strong></div>
                 </div>
-                <div className={styles.projection}><b>PROIEZIONE DEMO · 20 VIAGGI SIMILI/MESE</b><span>€ 356–390/mese · € 4.270–4.680/anno di costi evitabili</span><em>Carburante stimato a € 1,70/l. Pedaggi verificati sui calcolatori ufficiali.</em></div>
+                <div className={styles.projection}><b>PROIEZIONE DEMO · 20 VIAGGI SIMILI/MESE</b><span>€ 396–439/mese · € 4.751–5.269/anno di costi evitabili</span><em>Gasolio self Veneto € {fuelPrice.format(hc605Incident.dieselPriceEuro)}/l · MIMIT {hc605Incident.dieselPriceDate}. Pedaggi verificati sui calcolatori ufficiali.</em></div>
               </section>
               <div className={styles.grid}>
                 {data.vehicles?.map((vehicle) => (
