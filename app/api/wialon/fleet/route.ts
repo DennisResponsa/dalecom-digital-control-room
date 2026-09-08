@@ -18,12 +18,21 @@ type FleetVehicle = {
   distance24hKm: number | null;
   fuelLevelPercent: number | null;
   fuelConsumed24hL: number | null;
+  odometerSource: "can_total_distance" | "mileage" | null;
+  fuelTelemetryStatus: "available" | "not_transmitted";
+  speedAlerts: Array<{
+    speedKmh: number;
+    occurredAtUtc: string;
+    position: { latitude: number; longitude: number } | null;
+  }>;
   messages24h: number;
   positionedMessages24h: number;
   position: { latitude: number; longitude: number } | null;
 };
 
 const apiDefault = "https://hst-api.wialon.com/wialon/ajax.html";
+const productionFleetEndpoint =
+  "https://dalecom-preventivo-immediato.denniscumerlato.chatgpt.site/api/wialon/fleet";
 const cacheMs = 60_000;
 let cached: { expires: number; payload: Record<string, unknown> } | null = null;
 
@@ -70,6 +79,46 @@ function valuesFor(messages: WialonMessage[], key: string) {
     .filter((entry): entry is { value: number; t: number } => entry.value !== null);
 }
 
+function usableValues(messages: WialonMessage[], key: string) {
+  const entries = valuesFor(messages, key);
+  return entries.some((entry) => entry.value !== 0) ? entries : [];
+}
+
+function speedAlerts(messages: WialonMessage[], thresholdKmh = 130) {
+  const alerts: Array<{ speedKmh: number; occurredAtUtc: string; position: { latitude: number; longitude: number } | null }> = [];
+  let peak: WialonMessage | null = null;
+  let lastOverLimitAt = 0;
+
+  const commit = () => {
+    if (!peak?.t) return;
+    const longitude = numeric(peak.pos?.x);
+    const latitude = numeric(peak.pos?.y);
+    alerts.push({
+      speedKmh: round(numeric(peak.pos?.s), 0) as number,
+      occurredAtUtc: new Date(peak.t * 1000).toISOString(),
+      position:
+        longitude === null || latitude === null
+          ? null
+          : { latitude: round(latitude, 6) as number, longitude: round(longitude, 6) as number },
+    });
+    peak = null;
+  };
+
+  for (const message of messages) {
+    const speed = numeric(message.pos?.s);
+    const timestamp = message.t || 0;
+    if (speed !== null && speed > thresholdKmh) {
+      if (peak && timestamp - lastOverLimitAt > 120) commit();
+      if (!peak || speed > (numeric(peak.pos?.s) ?? -1)) peak = message;
+      lastOverLimitAt = timestamp;
+    } else if (peak && timestamp - lastOverLimitAt > 60) {
+      commit();
+    }
+  }
+  commit();
+  return alerts.sort((a, b) => b.speedKmh - a.speedKmh).slice(0, 6);
+}
+
 function round(value: number | null, digits = 1) {
   if (value === null || !Number.isFinite(value)) return null;
   const factor = 10 ** digits;
@@ -78,9 +127,14 @@ function round(value: number | null, digits = 1) {
 
 function summarize(unit: WialonUnit, messages: WialonMessage[], now: number): FleetVehicle {
   const last = messages.at(-1);
-  const distances = valuesFor(messages, "can_total_distance");
-  const fuelLevels = valuesFor(messages, "can_fuel_level_p");
-  const totalFuel = valuesFor(messages, "can_total_fuel_l");
+  const canDistances = usableValues(messages, "can_total_distance");
+  const mileage = usableValues(messages, "mileage");
+  const distances = canDistances.length ? canDistances : mileage;
+  const distanceDivisor = canDistances.length ? 10 : 1;
+  const odometerSource = canDistances.length ? "can_total_distance" : mileage.length ? "mileage" : null;
+  const fuelLevels = usableValues(messages, "can_fuel_level_p");
+  const fuelLitres = usableValues(messages, "can_total_fuel_l");
+  const totalFuel = fuelLitres.length ? fuelLitres : usableValues(messages, "can_total_fuel");
   const speeds = messages.map((message) => numeric(message.pos?.s)).filter((v): v is number => v !== null);
   const lastPosition = [...messages].reverse().find((message) => {
     return numeric(message.pos?.x) !== null && numeric(message.pos?.y) !== null;
@@ -97,14 +151,17 @@ function summarize(unit: WialonUnit, messages: WialonMessage[], now: number): Fl
     lastMessageUtc: lastTimestamp ? new Date(lastTimestamp * 1000).toISOString() : null,
     speedKmh: round(numeric(last?.pos?.s), 0),
     maxSpeed24hKmh: speeds.length ? round(Math.max(...speeds), 0) : null,
-    odometerCanKm: lastDistance === undefined ? null : round(lastDistance / 10, 1),
+    odometerCanKm: lastDistance === undefined ? null : round(lastDistance / distanceDivisor, 1),
     distance24hKm:
       firstDistance === undefined || lastDistance === undefined
         ? null
-        : round(Math.max(0, lastDistance - firstDistance) / 10, 1),
+        : round(Math.max(0, lastDistance - firstDistance) / distanceDivisor, 1),
     fuelLevelPercent: round(fuelLevels.at(-1)?.value ?? null, 1),
     fuelConsumed24hL:
       firstFuel === undefined || lastFuel === undefined ? null : round(Math.max(0, lastFuel - firstFuel), 1),
+    odometerSource,
+    fuelTelemetryStatus: fuelLevels.length || totalFuel.length ? "available" : "not_transmitted",
+    speedAlerts: speedAlerts(messages),
     messages24h: messages.length,
     positionedMessages24h: messages.filter((message) => message.pos).length,
     position:
@@ -117,13 +174,28 @@ function summarize(unit: WialonUnit, messages: WialonMessage[], now: number): Fl
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   if (cached && cached.expires > Date.now()) return response(cached.payload);
 
   const runtimeEnv = env as unknown as Record<string, string | undefined>;
   const token = runtimeEnv.WIALON_TOKEN;
   const apiUrl = runtimeEnv.WIALON_API_URL || apiDefault;
-  if (!token) return response({ success: false, error: "Collegamento GPS non configurato" }, 503);
+  if (!token) {
+    const hostname = new URL(request.url).hostname;
+    const isLocalPreview = hostname === "localhost" || hostname === "127.0.0.1";
+    if (isLocalPreview) {
+      try {
+        const upstream = await fetch(productionFleetEndpoint, { cache: "no-store" });
+        const payload = (await upstream.json()) as Record<string, unknown>;
+        if (upstream.ok && payload.success === true) {
+          return response({ ...payload, previewSource: "Telemetria del sito Dalecom pubblicato" });
+        }
+      } catch {
+        // Il pannello storico resta comunque disponibile nel frontend.
+      }
+    }
+    return response({ success: false, error: "Collegamento GPS non configurato" }, 503);
+  }
 
   let sid: string | undefined;
   try {
