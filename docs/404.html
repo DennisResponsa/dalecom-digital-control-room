@@ -3,8 +3,15 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta http-equiv="refresh" content="0; url=./" />
     <title>Dalecom Digital Control Room</title>
+    <script>
+      (() => {
+        const basePath = "/dalecom-digital-control-room";
+        const path = location.pathname.startsWith(basePath) ? location.pathname.slice(basePath.length) : "/demo";
+        const route = `${path || "/demo"}${location.search}${location.hash}`;
+        location.replace(`${basePath}/?path=${encodeURIComponent(route)}`);
+      })();
+    </script>
   </head>
   <body style="margin:0;background:#0b2d3d;color:#fff;font-family:system-ui,sans-serif">
     <p>Caricamento della regia Dalecom…</p>

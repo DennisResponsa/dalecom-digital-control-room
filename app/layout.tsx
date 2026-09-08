@@ -3,6 +3,7 @@ import './globals.css';
 import './extra.css';
 import './nav.css';
 import dtStyles from './dt-mark.module.css';
+import GitHubPagesBridge from './github-pages-bridge';
 
 export const metadata: Metadata = {
   title: 'Dalecom | Preventivo immediato',
@@ -28,6 +29,7 @@ export default function RootLayout({
   return (
     <html lang="it">
       <body>
+        <GitHubPagesBridge />
         {children}
         <div className={dtStyles.mark} aria-label="DT">
           <i aria-hidden="true" />

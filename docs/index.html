@@ -16,6 +16,7 @@
   </head>
   <body>
     <iframe
+      id="dalecom-app"
       src="https://dalecom-preventivo-immediato.denniscumerlato.chatgpt.site/demo"
       title="Dalecom Digital Control Room"
       allow="geolocation; camera; microphone; fullscreen"
@@ -24,5 +25,42 @@
     <noscript class="fallback">
       JavaScript non disponibile. <a href="https://dalecom-preventivo-immediato.denniscumerlato.chatgpt.site/demo">Apri la regia Dalecom</a>.
     </noscript>
+    <script>
+      (() => {
+        const backendOrigin = "https://dalecom-preventivo-immediato.denniscumerlato.chatgpt.site";
+        const basePath = "/dalecom-digital-control-room";
+        const frame = document.getElementById("dalecom-app");
+        const params = new URLSearchParams(location.search);
+
+        function normalize(route) {
+          const value = typeof route === "string" && route.startsWith("/") && !route.startsWith("//") ? route : "/demo";
+          return value === "/" ? "/demo" : value;
+        }
+
+        function routeFromAddress() {
+          const forwarded = params.get("path");
+          if (forwarded) return normalize(forwarded);
+          const path = location.pathname.startsWith(basePath) ? location.pathname.slice(basePath.length) : "";
+          return normalize(`${path || "/demo"}${location.search}${location.hash}`);
+        }
+
+        let activeRoute = routeFromAddress();
+        frame.src = `${backendOrigin}${activeRoute}`;
+
+        window.addEventListener("message", (event) => {
+          if (event.origin !== backendOrigin || event.data?.type !== "dalecom:navigation") return;
+          activeRoute = normalize(event.data.route);
+          history.replaceState(null, "", `${basePath}${activeRoute}`);
+        });
+
+        window.addEventListener("popstate", () => {
+          const path = location.pathname.startsWith(basePath) ? location.pathname.slice(basePath.length) : "/demo";
+          const route = normalize(`${path}${location.search}${location.hash}`);
+          if (route === activeRoute) return;
+          activeRoute = route;
+          frame.contentWindow.postMessage({ type: "dalecom:open", route }, backendOrigin);
+        });
+      })();
+    </script>
   </body>
 </html>
