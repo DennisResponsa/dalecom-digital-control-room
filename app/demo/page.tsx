@@ -164,6 +164,16 @@ const tools = [
     accent: "orange",
     disabled: false,
   },
+  {
+    number: "17",
+    eyebrow: "MACCHINE CONNESSE",
+    title: "Attrezzatura 4.0",
+    description: "Turbosol, telemetria, posizioni, sensori e allarmi collegati ai portali Cleve e Diaboard.",
+    action: "Apri Attrezzatura 4.0",
+    href: "/attrezzatura-4-0",
+    accent: "cyan",
+    disabled: false,
+  },
 ] as const;
 
 function ToolCard({ tool }: { tool: (typeof tools)[number] }) {
