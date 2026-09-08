@@ -1,8 +1,6 @@
 import styles from "./page.module.css";
 import sixStyles from "./six.module.css";
 
-const dalecomPublicUrl = "https://dalecom-preventivo-immediato.denniscumerlato.chatgpt.site";
-
 const tools = [
   {
     number: "01",
@@ -10,7 +8,7 @@ const tools = [
     title: "Preventivo intelligente",
     description: "Dalla richiesta alla proposta personalizzata, con invio immediato dei dati a 1C.",
     action: "Apri il preventivatore",
-    href: `${dalecomPublicUrl}/`,
+    href: "/",
     accent: "orange",
     disabled: false,
   },
@@ -20,7 +18,7 @@ const tools = [
     title: "Flotta in tempo reale",
     description: "Mezzi targati e macchine operatrici: posizioni, attività, telemetria e manutenzioni.",
     action: "Apri flotta e macchine",
-    href: `${dalecomPublicUrl}/flotta`,
+    href: "/flotta",
     accent: "cyan",
     disabled: false,
   },

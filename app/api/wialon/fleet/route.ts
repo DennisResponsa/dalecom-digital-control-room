@@ -32,7 +32,7 @@ type FleetVehicle = {
 
 const apiDefault = "https://hst-api.wialon.com/wialon/ajax.html";
 const productionFleetEndpoint =
-  "https://dalecom-preventivo-immediato.denniscumerlato.chatgpt.site/api/wialon/fleet";
+  "https://dalecom-digital-control-room.dalecom-control-room.workers.dev/api/wialon/fleet";
 const cacheMs = 60_000;
 let cached: { expires: number; payload: Record<string, unknown> } | null = null;
 

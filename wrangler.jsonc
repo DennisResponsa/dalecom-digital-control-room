@@ -1,0 +1,37 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "dalecom-digital-control-room",
+  "account_id": "9dc760aed9048f66bbbbc9a435c0b543",
+  "main": "vinext/server/fetch-handler",
+  "compatibility_date": "2026-09-08",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "assets": {
+    "directory": "dist/client",
+    "not_found_handling": "none",
+    "binding": "ASSETS"
+  },
+  "vars": {
+    "ONEC_ODATA_URL": "https://sharedhosting.cloud2.1c-erp.it/Dalecom/odata/standard.odata",
+    "WIALON_API_URL": "https://hst-api.wialon.com/wialon/ajax.html"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "dalecom-control-room",
+      "database_id": "84b25324-c8ad-4fc8-9eb0-ff67db96ddda",
+      "migrations_dir": "drizzle"
+    }
+  ],
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.05
+    }
+  }
+}

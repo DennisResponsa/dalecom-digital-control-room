@@ -51,6 +51,12 @@ export default defineConfig(async () => {
   // Wrangler snapshots its log path while the Cloudflare plugin is imported.
   const { cloudflare } = await import('@cloudflare/vite-plugin');
 
+  // Sites keeps using its managed bindings. Direct Cloudflare releases instead
+  // read the production resources declared in wrangler.jsonc.
+  const cloudflareRuntimeConfig = process.env.DALECOM_CLOUDFLARE_BUILD === '1'
+    ? { configPath: './wrangler.jsonc' }
+    : { config: localBindingConfig };
+
   return {
     css: { postcss: { plugins: [tailwindcss()] } },
     server: isCodexSeatbeltSandbox
@@ -62,7 +68,7 @@ export default defineConfig(async () => {
       cloudflare({
         inspectorPort: false,
         viteEnvironment: { name: 'rsc', childEnvironments: ['ssr'] },
-        config: localBindingConfig,
+        ...cloudflareRuntimeConfig,
       }),
     ],
   };

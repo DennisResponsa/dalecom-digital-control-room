@@ -692,7 +692,7 @@ export default function Home() {
       source: {
         application: "dalecom-preventivo-immediato",
         environment: "production",
-        public_url: "https://dalecom-preventivo-immediato.denniscumerlato.chatgpt.site/",
+        public_url: `${window.location.origin}/`,
       },
       crm_action: {
         create_lead: true,
