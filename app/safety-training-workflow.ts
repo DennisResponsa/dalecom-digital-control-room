@@ -31,25 +31,33 @@ export type DigitalCourseDocument = {
   title: string;
   owner: "Sistema" | "Dipendente" | "Docente" | "Salvatore" | "Certificatore";
   status: "ready" | "pending" | "locked";
+  scope: "individual" | "collective";
 };
 
 export function buildDigitalDossier(course: CourseDefinition): DigitalCourseDocument[] {
   return [
-    { id: "enrollment", title: "Scheda d’iscrizione precompilata", owner: "Sistema", status: "ready" },
-    { id: "privacy", title: "Informativa privacy precompilata", owner: "Dipendente", status: "pending" },
-    { id: "attendance", title: "Registro presenze digitale", owner: "Sistema", status: "ready" },
-    { id: "test", title: "Test finale digitale", owner: "Dipendente", status: "pending" },
-    ...(course.requiresPracticalAssessment ? [{ id: "practical", title: "Valutazione prova pratica", owner: "Docente" as const, status: "pending" as const }] : []),
-    { id: "minutes", title: "Verbale finale", owner: "Docente", status: "pending" },
-    { id: "certificate", title: "Attestato e nuova scadenza", owner: "Certificatore", status: "locked" },
+    { id: "enrollment", title: "Scheda d’iscrizione precompilata", owner: "Sistema", status: "ready", scope: "individual" },
+    { id: "privacy", title: "Informativa privacy precompilata", owner: "Dipendente", status: "pending", scope: "individual" },
+    { id: "attendance", title: "Registro presenze digitale", owner: "Sistema", status: "ready", scope: "collective" },
+    { id: "test", title: "Test finale digitale", owner: "Dipendente", status: "pending", scope: "individual" },
+    ...(course.requiresPracticalAssessment ? [{ id: "practical", title: "Valutazione prova pratica", owner: "Docente" as const, status: "pending" as const, scope: "individual" as const }] : []),
+    { id: "minutes", title: "Verbale finale", owner: "Docente", status: "pending", scope: "collective" },
+    { id: "certificate", title: "Attestato e nuova scadenza", owner: "Certificatore", status: "locked", scope: "individual" },
   ];
 }
+
+export type TrainingParticipant = {
+  name: string;
+  role: string;
+  branch: string;
+};
 
 export type TrainingEnrollment = {
   id: string;
   employeeName: string;
   employeeRole: string;
   employeeBranch: string;
+  participants: TrainingParticipant[];
   courseCode: string;
   courseTitle: string;
   date: string;
@@ -69,17 +77,20 @@ export function createTrainingEnrollment(input: {
   employeeName: string;
   employeeRole: string;
   employeeBranch: string;
+  participants?: TrainingParticipant[];
   course: CourseDefinition;
   date: string;
   trainer: string;
   now?: Date;
 }): TrainingEnrollment {
   const now = input.now ?? new Date();
+  const participants = input.participants?.length ? input.participants.slice(0, 20) : [{ name: input.employeeName, role: input.employeeRole, branch: input.employeeBranch }];
   return {
     id: `TRN-${now.getTime()}`,
     employeeName: input.employeeName,
     employeeRole: input.employeeRole,
     employeeBranch: input.employeeBranch,
+    participants,
     courseCode: input.course.code,
     courseTitle: input.course.title,
     date: input.date,

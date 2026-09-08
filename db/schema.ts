@@ -51,3 +51,13 @@ export const trainingDocuments = sqliteTable("training_documents", {
 }, (table) => [
   primaryKey({ columns: [table.enrollmentId, table.documentId] }),
 ]);
+
+export const trainingEnrollmentParticipants = sqliteTable("training_enrollment_participants", {
+  enrollmentId: text("enrollment_id").notNull(),
+  participantName: text("participant_name").notNull(),
+  participantRole: text("participant_role").notNull(),
+  participantBranch: text("participant_branch").notNull(),
+  rosterPosition: integer("roster_position").notNull(),
+}, (table) => [
+  primaryKey({ columns: [table.enrollmentId, table.participantName] }),
+]);

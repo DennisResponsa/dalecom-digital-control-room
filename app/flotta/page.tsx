@@ -38,10 +38,26 @@ type FleetData = {
 
 type FleetView = "vehicles" | "machines";
 
-const operatingMachines = [
-  { id: "DA-MEZ-CING-TB30", name: "Turbosol TB30 Cingolata", family: "Pompa per calcestruzzo", source: "Cleve", state: "In attesa token" },
-  { id: "DA-MEZ-MASSETTI-TRANSMAT250", name: "Turbosol Transmat 250", family: "Pompa per massetti", source: "Diaboard da verificare", state: "Da associare" },
-] as const;
+type OperatingMachine = {
+  id: number;
+  machineType: string;
+  active: boolean;
+  signalStrength: number;
+  description: string;
+  companyCode: string | null;
+  clientCode: string | null;
+  hasActiveAlarm: boolean;
+  position: { latitude: number; longitude: number } | null;
+  legacy: boolean;
+};
+
+type MachineData = {
+  success: boolean;
+  source?: string;
+  generatedAt?: string;
+  machines?: OperatingMachine[];
+  error?: string;
+};
 
 const number = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 1 });
 const fuelPrice = new Intl.NumberFormat("it-IT", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
@@ -103,6 +119,8 @@ function externalMapUrl(position: { latitude: number; longitude: number }) {
 export default function FleetPage() {
   const [data, setData] = useState<FleetData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [machineData, setMachineData] = useState<MachineData | null>(null);
+  const [machinesLoading, setMachinesLoading] = useState(true);
   const [view, setView] = useState<FleetView>("vehicles");
 
   const load = useCallback(async () => {
@@ -118,11 +136,30 @@ export default function FleetPage() {
     }
   }, []);
 
+  const loadMachines = useCallback(async () => {
+    setMachinesLoading(true);
+    try {
+      const res = await fetch("/api/diaboard/machines", { cache: "no-store" });
+      const body = (await res.json()) as MachineData;
+      setMachineData(body);
+    } catch {
+      setMachineData({ success: false, error: "Impossibile raggiungere Diaboard" });
+    } finally {
+      setMachinesLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     void load();
     const timer = window.setInterval(() => void load(), 120_000);
     return () => window.clearInterval(timer);
   }, [load]);
+
+  useEffect(() => {
+    void loadMachines();
+    const timer = window.setInterval(() => void loadMachines(), 300_000);
+    return () => window.clearInterval(timer);
+  }, [loadMachines]);
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("vista") === "macchine") setView("machines");
@@ -146,6 +183,9 @@ export default function FleetPage() {
   }, [data]);
 
   const hc605 = data?.vehicles?.find((vehicle) => vehicle.name.toUpperCase().replaceAll(" ", "") === hc605Incident.vehicle);
+  const operatingMachines = machineData?.machines ?? [];
+  const activeMachines = operatingMachines.filter((machine) => machine.active).length;
+  const machineAlarms = operatingMachines.filter((machine) => machine.hasActiveAlarm).length;
 
   return (
     <main className={styles.page}>
@@ -174,37 +214,38 @@ export default function FleetPage() {
         <div className={styles.toolbar}>
           <div>
             <strong>{view === "vehicles" ? "Mezzi targati · ultime 24 ore" : "Macchine operatrici · Attrezzatura 4.0"}</strong>
-            <span>{view === "vehicles" ? (data?.generatedAt ? `Aggiornato ${localTime(data.generatedAt)}` : data && !data.success ? "Telemetria live non collegata · analisi storica disponibile" : "Collegamento in corso…") : "Anagrafica iniziale · dati live in attesa delle credenziali API"}</span>
+            <span>{view === "vehicles" ? (data?.generatedAt ? `Aggiornato ${localTime(data.generatedAt)}` : data && !data.success ? "Telemetria live non collegata · analisi storica disponibile" : "Collegamento in corso…") : machineData?.generatedAt ? `Diaboard aggiornato ${localTime(machineData.generatedAt)}` : machinesLoading ? "Collegamento Diaboard in corso…" : machineData?.error ?? "Diaboard non disponibile"}</span>
           </div>
-          {view === "vehicles" ? <button className={styles.refresh} onClick={() => void load()} disabled={loading}>{loading ? "Aggiorno…" : "Aggiorna dati"}</button> : <span className={machineStyles.readOnly}>Prima fase · sola lettura</span>}
+          {view === "vehicles" ? <button className={styles.refresh} onClick={() => void load()} disabled={loading}>{loading ? "Aggiorno…" : "Aggiorna dati"}</button> : <button className={styles.refresh} onClick={() => void loadMachines()} disabled={machinesLoading}>{machinesLoading ? "Aggiorno…" : "Aggiorna Diaboard"}</button>}
         </div>
         <div className={styles.content}>
           {view === "machines" ? (
             <>
               <div className={`${styles.kpis} ${machineStyles.machineKpis}`}>
-                <div className={styles.kpi}><small>Macchine Turbosol censite</small><strong>{operatingMachines.length}</strong><span>Anagrafica già presente in Dalecom</span></div>
+                <div className={styles.kpi}><small>Macchine Turbosol censite</small><strong>{operatingMachines.length || "—"}</strong><span>{machineData?.success ? "Anagrafica letta da Diaboard" : "Collegamento non disponibile"}</span></div>
                 <div className={styles.kpi}><small>Cleve</small><strong>Pronto</strong><span>In attesa del token aziendale</span></div>
-                <div className={styles.kpi}><small>Diaboard</small><strong>Legacy</strong><span>Credenziali API da verificare</span></div>
-                <div className={styles.kpi}><small>Collegamento 1C</small><strong>JSON</strong><span>Mappatura normalizzata prevista</span></div>
+                <div className={styles.kpi}><small>Diaboard</small><strong>{machineData?.success ? "LIVE" : "OFF"}</strong><span>{machineData?.success ? `${activeMachines} attive · ${machineAlarms} con allarme` : machineData?.error ?? "In attesa"}</span></div>
+                <div className={styles.kpi}><small>Collegamento 1C</small><strong>JSON</strong><span>19 campi macchina normalizzati</span></div>
               </div>
               <div className={machineStyles.machineGrid}>
                 {operatingMachines.map((machine) => (
                   <article className={machineStyles.operatingMachine} key={machine.id}>
-                    <header><div><small>MACCHINA OPERATRICE</small><h2>{machine.name}</h2><p>{machine.family} · {machine.id}</p></div><span>{machine.state}</span></header>
+                    <header><div><small>MACCHINA OPERATRICE · DIABOARD</small><h2>{machine.description}</h2><p>{machine.machineType} · {machine.clientCode ?? `ID ${machine.id}`}</p></div><span className={machine.active ? machineStyles.machineOnline : undefined}>{machine.active ? "Attiva" : "Non attiva"}</span></header>
                     <div className={machineStyles.machineMetrics}>
-                      <div><small>Sorgente dati</small><b>{machine.source}</b></div>
-                      <div><small>Ultima comunicazione</small><b>Non disponibile</b></div>
-                      <div><small>Ore di lavoro</small><b>In attesa API</b></div>
-                      <div><small>Posizione macchina</small><b>In attesa API</b></div>
-                      <div><small>Telemetria e sensori</small><b>Predisposti</b></div>
-                      <div><small>Allarmi e anomalie</small><b>Predisposti</b></div>
+                      <div><small>Codice azienda</small><b>{machine.companyCode ?? "—"}</b></div>
+                      <div><small>Segnale GSM</small><b>{machine.signalStrength}</b></div>
+                      <div><small>Dispositivo</small><b>{machine.legacy ? "Diaboard legacy" : "Diaboard nuovo"}</b></div>
+                      <div><small>Posizione macchina</small><b>{machine.position ? `${machine.position.latitude.toFixed(4)}, ${machine.position.longitude.toFixed(4)}` : "Non disponibile"}</b></div>
+                      <div><small>Stato telemetria</small><b>{machine.active ? "Dati negli ultimi 15 min" : "Nessun dato negli ultimi 15 min"}</b></div>
+                      <div><small>Allarmi</small><b>{machine.hasActiveAlarm ? "Allarme attivo" : "Nessun allarme attivo"}</b></div>
                     </div>
-                    <footer><span>La macchina verrà associata automaticamente all’identificativo restituito dal portale.</span><a href="/officina">Apri manutenzioni →</a></footer>
+                    <footer><span>{machine.position ? <a href={externalMapUrl(machine.position)} target="_blank" rel="noreferrer">Apri posizione ↗</a> : "Posizione non trasmessa"}</span><a href="/officina">Apri manutenzioni →</a></footer>
                   </article>
                 ))}
+                {!machinesLoading && !operatingMachines.length ? <div className={machineStyles.machineEmpty}><b>Diaboard non collegato</b><span>{machineData?.error ?? "Nessuna macchina restituita"}</span></div> : null}
               </div>
               <div className={machineStyles.integrationFlow}><b>MACCHINA</b><i>→</i><span>Cleve / Diaboard</span><i>→</i><span>Connettore Dalecom</span><i>→</i><span>1C e officina</span><i>→</i><strong>Regia</strong></div>
-              <div className={styles.privacy}><b>ATTREZZATURA 4.0</b><span>I valori non vengono simulati come dati live. Appena disponibile il token Cleve, questa vista mostrerà le informazioni effettivamente autorizzate dal portale.</span></div>
+              <div className={styles.privacy}><b>ATTREZZATURA 4.0</b><span>I valori Diaboard sono letti in sola lettura dalle API ufficiali. Cleve verrà affiancato appena disponibile il token aziendale.</span></div>
             </>
           ) : loading && !data ? <div className={styles.skeleton} /> : !data?.success ? (
             <>

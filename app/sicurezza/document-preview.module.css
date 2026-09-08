@@ -18,6 +18,32 @@
   background: #e8782f;
 }
 
+.selectedRoster {
+  margin: 0 0 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.selectedRoster > div {
+  padding: 8px 9px;
+  display: grid;
+  grid-template-columns: 26px 1fr 24px;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid #ffffff14;
+  border-radius: 8px;
+  background: #091f2a;
+}
+
+.selectedRoster i,
+.roster i { width: 25px; height: 25px; display: grid; place-items: center; border-radius: 7px; color: #102b37; background: #f28a3a; font-size: 11px; font-style: normal; font-weight: 900; }
+.selectedRoster b,
+.selectedRoster small { display: block; }
+.selectedRoster b { color: #edf4f6; font-size: 12px; }
+.selectedRoster small { margin-top: 2px; color: #79919b; font-size: 10px; }
+.selectedRoster button { border: 0; color: #91a5ad; background: transparent; font-size: 18px; cursor: pointer; }
+
 .previewBackdrop {
   position: fixed;
   z-index: 1000;
@@ -70,10 +96,16 @@
 .documentPreview dl div { padding: 10px; border-right: 1px solid #d7e0e3; border-bottom: 1px solid #d7e0e3; }
 .documentPreview dt { color: #6b8088; font-size: 10px; font-weight: 900; text-transform: uppercase; }
 .documentPreview dd { margin: 4px 0 0; font-size: 12px; font-weight: 750; }
+.roster { margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.roster > b { grid-column: 1 / -1; color: #203d49; font-size: 12px; }
+.roster > span { padding: 8px; display: grid; grid-template-columns: 25px 1fr; gap: 8px; align-items: center; border-radius: 7px; background: #edf3f5; color: #17313d; font-size: 11px; font-weight: 800; }
+.roster > span small { grid-column: 2; margin-top: -7px; color: #748991; font-size: 9px; font-weight: 650; }
 .documentPreview > footer { margin-top: 16px; padding-top: 12px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #d7e0e3; color: #667d86; font-size: 11px; }
 .documentPreview > footer small { color: #82949b; }
 
 @media (max-width: 720px) {
+  .selectedRoster,
+  .roster { grid-template-columns: 1fr; }
   .documentRow { grid-template-columns: 30px 1fr !important; }
   .documentRow > span,
   .documentRow > button { grid-column: 2; }

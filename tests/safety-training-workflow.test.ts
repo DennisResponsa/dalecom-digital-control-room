@@ -21,6 +21,15 @@ test("il fascicolo nasce già precompilato e include la prova pratica solo quand
   assert.ok(theory.some((document) => document.id === "enrollment" && document.status === "ready"));
   assert.equal(theory.some((document) => document.id === "practical"), false);
   assert.equal(pump.some((document) => document.id === "practical"), true);
+  assert.equal(pump.find((document) => document.id === "attendance")?.scope, "collective");
+  assert.equal(pump.find((document) => document.id === "minutes")?.scope, "collective");
+  assert.equal(pump.find((document) => document.id === "certificate")?.scope, "individual");
+});
+
+test("una edizione conserva un massimo di 20 partecipanti", () => {
+  const participants = Array.from({ length: 25 }, (_, index) => ({ name: `Dipendente ${index + 1}`, role: "Operatore", branch: "Paese" }));
+  const enrollment = createTrainingEnrollment({ employeeName: participants[0].name, employeeRole: participants[0].role, employeeBranch: participants[0].branch, participants, course: courseCatalog[0], date: "2026-09-10", trainer: "Salvatore Calio’" });
+  assert.equal(enrollment.participants.length, 20);
 });
 
 test("il corso si chiude solo con test, firme e prova pratica", () => {

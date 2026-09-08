@@ -40,6 +40,7 @@
 .operatingMachine h2 { margin: 6px 0 4px; font-size: 21px; }
 .operatingMachine header p { margin: 0; color: #a9c4ce; font-size: 9px; }
 .operatingMachine header > span { padding: 7px 9px; border-radius: 999px; background: rgba(240, 107, 34, .2); color: #ffc092; font-size: 8px; font-weight: 900; text-transform: uppercase; white-space: nowrap; }
+.operatingMachine header > span.machineOnline { background: rgba(72, 208, 136, .2); color: #9df0c2; }
 .machineMetrics { display: grid; grid-template-columns: repeat(2, 1fr); padding: 9px; }
 .machineMetrics > div { padding: 14px; border-bottom: 1px solid #e1e9ec; }
 .machineMetrics > div:nth-child(odd) { border-right: 1px solid #e1e9ec; }
@@ -49,6 +50,8 @@
 .machineMetrics b { margin-top: 6px; color: #173646; font-size: 12px; }
 .operatingMachine > footer { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 14px 17px; background: #edf5f7; color: #607985; font-size: 9px; }
 .operatingMachine footer a { color: #08718a; text-decoration: none; font-weight: 900; white-space: nowrap; }
+.machineEmpty { grid-column: 1 / -1; display: grid; gap: 5px; padding: 32px; border: 1px dashed #b9d0d7; border-radius: 14px; background: #f4f8f9; color: #173646; text-align: center; }
+.machineEmpty span { color: #718992; font-size: 11px; }
 
 .integrationFlow { display: flex; align-items: center; justify-content: center; gap: 13px; margin-top: 18px; padding: 16px; border-radius: 11px; background: linear-gradient(100deg, #0b2d3d, #0a7188); color: #d9e9ed; font-size: 10px; }
 .integrationFlow b, .integrationFlow strong { color: #fff; }

@@ -9,6 +9,7 @@ type CreateRequest = {
   courseCode?: string;
   courseDate?: string;
   trainer?: string;
+  participants?: Array<{ name?: string; role?: string; branch?: string }>;
 };
 
 function json(body: Record<string, unknown>, status = 200) {
@@ -32,13 +33,19 @@ export async function POST(request: Request) {
   catch { return json({ success: false, error: "JSON non valido" }, 400); }
 
   const course = courseCatalog.find((item) => item.code === body.courseCode);
-  if (!course || !validText(body.employeeName) || !validText(body.employeeRole) || !validText(body.employeeBranch)
+  const participants = (body.participants?.length ? body.participants : [{ name: body.employeeName, role: body.employeeRole, branch: body.employeeBranch }])
+    .filter((participant) => validText(participant.name) && validText(participant.role) && validText(participant.branch))
+    .map((participant) => ({ name: participant.name!.trim(), role: participant.role!.trim(), branch: participant.branch!.trim() }));
+  const uniqueParticipants = participants.filter((participant, index) => participants.findIndex((item) => item.name === participant.name) === index);
+  if (!course || uniqueParticipants.length < 1 || uniqueParticipants.length > 20
       || !validText(body.trainer) || !/^20\d\d-\d\d-\d\d$/.test(body.courseDate || "")) {
     return json({ success: false, error: "Dati iscrizione incompleti" }, 400);
   }
 
+  const firstParticipant = uniqueParticipants[0];
   const enrollment = createTrainingEnrollment({
-    employeeName: body.employeeName!, employeeRole: body.employeeRole!, employeeBranch: body.employeeBranch!,
+    employeeName: firstParticipant.name, employeeRole: firstParticipant.role, employeeBranch: firstParticipant.branch,
+    participants: uniqueParticipants,
     course, date: body.courseDate!, trainer: body.trainer!,
   });
   const documents = buildDigitalDossier(course);
@@ -57,7 +64,10 @@ export async function POST(request: Request) {
   ), ...documents.map((document) => database.prepare(`
     INSERT INTO training_documents (enrollment_id, document_id, title, owner, status)
     VALUES (?, ?, ?, ?, ?)
-  `).bind(enrollment.id, document.id, document.title, document.owner, document.status))];
+  `).bind(enrollment.id, document.id, document.title, document.owner, document.status)), ...uniqueParticipants.map((participant, index) => database.prepare(`
+    INSERT INTO training_enrollment_participants (enrollment_id, participant_name, participant_role, participant_branch, roster_position)
+    VALUES (?, ?, ?, ?, ?)
+  `).bind(enrollment.id, participant.name, participant.role, participant.branch, index + 1))];
   await database.batch(statements);
 
   let emailStatus: "queued" | "sent" = "queued";
@@ -69,7 +79,7 @@ export async function POST(request: Request) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           to: COURSE_CERTIFIER_EMAIL,
-          subject: `Dalecom · iscrizione ${enrollment.courseCode} · ${enrollment.employeeName}`,
+          subject: `Dalecom · ${enrollment.courseCode} · ${enrollment.participants.length} partecipanti`,
           enrollment,
           documents,
         }),
