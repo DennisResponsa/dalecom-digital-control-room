@@ -1,7 +1,8 @@
 "use client";
 
 import { type CSSProperties, useEffect, useMemo, useState } from "react";
-import { employeeOverallLevel, nearMisses, onboardingCases, safetyCheck, safetyEmployees, siteAccesses, trainingCourses, type SafetyLevel } from "../safety-data";
+import { employeeOverallLevel, nearMisses, onboardingCases, safetyCheck, safetyEmployees, siteAccesses, type SafetyLevel } from "../safety-data";
+import TrainingDigitization from "./TrainingDigitization";
 import styles from "./page.module.css";
 import extra from "./sections.module.css";
 
@@ -12,7 +13,6 @@ export default function SafetyPage() {
   const [filter, setFilter] = useState<"all" | SafetyLevel>("all");
   const [search, setSearch] = useState("");
   const [section, setSection] = useState<"passport" | "academy" | "access" | "onboarding" | "nearMiss">("passport");
-  const [courseActions, setCourseActions] = useState<Record<string, string>>({});
   const [accessSent, setAccessSent] = useState<Record<string, boolean>>({});
   useEffect(() => {
     const requested = new URLSearchParams(window.location.search).get("section");
@@ -57,12 +57,7 @@ export default function SafetyPage() {
       </article>
     </section>}
 
-    {section === "academy" && <section className={extra.operational}>
-      <header><div><small>DALECOM ACADEMY</small><h2>Formazione pianificata, tracciata e verificata</h2><p>Microlearning, aula, addestramento pratico e test finale in un unico percorso.</p></div><button onClick={() => setCourseActions((value) => ({ ...value, new: "Nuova sessione predisposta per il 06/10/2026" }))}>+ Programma sessione</button></header>
-      {courseActions.new && <div className={extra.success}>{courseActions.new}</div>}
-      <div className={extra.courseGrid}>{trainingCourses.map((course) => <article key={course.id}><header><span>{course.id}</span><em>{course.status}</em></header><h3>{course.title}</h3><p>{course.date} · {course.hours} ore · {course.mode}</p><div><span><small>FORMATORE</small><b>{course.trainer}</b></span><span><small>ISCRITTI</small><b>{course.enrolled}/{course.seats}</b></span></div><footer><button onClick={() => setCourseActions((value) => ({ ...value, [course.id]: "Inviti e promemoria inviati" }))}>{courseActions[course.id] || "Invia convocazioni"}</button><button>Apri registro</button></footer></article>)}</div>
-      <div className={extra.academyBottom}><article><small>TEST AL PRIMO TENTATIVO</small><b>87%</b><span>Monitoraggio per corso, formatore e mansione</span></article><article><small>FORMAZIONE INTERNA</small><b>64%</b><span>Obiettivo: aumento progressivo</span></article><article><small>ORE DA RECUPERARE</small><b>28 h</b><span>7 dipendenti da ripianificare</span></article><article><small>EFFICACIA A 90 GIORNI</small><b>Buona</b><span>3 verifiche sul campo aperte</span></article></div>
-    </section>}
+    {section === "academy" && <TrainingDigitization />}
 
     {section === "access" && <section className={extra.operational}>
       <header><div><small>SITE ACCESS AUTOMATION</small><h2>Autorizzazioni concluse prima della partenza</h2><p>Il sistema incrocia dipendente, documenti, formazione, abilitazioni e portale del cliente.</p></div><a href="/logistica">Apri pianificazione →</a></header>

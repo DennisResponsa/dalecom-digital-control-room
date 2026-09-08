@@ -20,3 +20,34 @@ export const operatorAssignments = sqliteTable("operator_assignments", {
 }, (table) => [
   primaryKey({ columns: [table.employeeId, table.workdayDate] }),
 ]);
+
+export const trainingEnrollments = sqliteTable("training_enrollments", {
+  id: text("id").primaryKey(),
+  employeeName: text("employee_name").notNull(),
+  employeeRole: text("employee_role").notNull(),
+  employeeBranch: text("employee_branch").notNull(),
+  courseCode: text("course_code").notNull(),
+  courseTitle: text("course_title").notNull(),
+  courseDate: text("course_date").notNull(),
+  trainer: text("trainer").notNull(),
+  recipient: text("recipient").notNull(),
+  createdBy: text("created_by").notNull(),
+  createdAt: text("created_at").notNull(),
+  updatedAtEpochMs: integer("updated_at_epoch_ms").notNull(),
+  emailStatus: text("email_status").notNull(),
+  status: text("status").notNull(),
+  testScore: integer("test_score"),
+  employeeSigned: integer("employee_signed", { mode: "boolean" }).notNull(),
+  trainerSigned: integer("trainer_signed", { mode: "boolean" }).notNull(),
+  practicalPassed: integer("practical_passed", { mode: "boolean" }),
+});
+
+export const trainingDocuments = sqliteTable("training_documents", {
+  enrollmentId: text("enrollment_id").notNull(),
+  documentId: text("document_id").notNull(),
+  title: text("title").notNull(),
+  owner: text("owner").notNull(),
+  status: text("status").notNull(),
+}, (table) => [
+  primaryKey({ columns: [table.enrollmentId, table.documentId] }),
+]);
