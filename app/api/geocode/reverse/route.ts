@@ -30,7 +30,6 @@ export async function GET(request: NextRequest) {
         "Accept-Language": "it",
         "User-Agent": "Dalecom-Digital-Control-Room/1.0",
       },
-      cache: "force-cache",
     });
     if (!response.ok) throw new Error(`Geocodifica non disponibile (${response.status})`);
     const result = (await response.json()) as { display_name?: unknown };
