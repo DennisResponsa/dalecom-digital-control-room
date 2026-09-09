@@ -277,7 +277,13 @@ export default function FleetPage() {
               <div className={machineStyles.machineGrid}>
                 {operatingMachines.map((machine) => (
                   <article className={machineStyles.operatingMachine} key={machine.id}>
-                    <header><div><small>MACCHINA PRODUTTIVA · DIABOARD</small><h2>{machine.description}</h2><p>{machine.machineType} · {machine.clientCode ?? `ID ${machine.id}`}</p></div><span className={machine.active ? machineStyles.machineOnline : undefined}>{machine.active ? "Attiva" : "Non attiva"}</span></header>
+                    <header>
+                      <div><small>MACCHINA PRODUTTIVA · DIABOARD</small><h2>{machine.description}</h2><p>{machine.machineType} · {machine.clientCode ?? `ID ${machine.id}`}</p></div>
+                      <div className={`${machineStyles.powerState} ${machine.active ? machineStyles.powerOn : machineStyles.powerOff}`} aria-label={machine.active ? "Macchina accesa" : "Macchina spenta"}>
+                        <i aria-hidden="true" />
+                        <b>{machine.active ? "ACCESA" : "SPENTA"}</b>
+                      </div>
+                    </header>
                     <div className={machineStyles.machineMetrics}>
                       <div><small>Codice azienda</small><b>{machine.companyCode ?? "—"}</b></div>
                       <div><small>Segnale GSM</small><b>{machine.signalStrength}</b></div>
