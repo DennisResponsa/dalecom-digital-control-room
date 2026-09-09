@@ -129,9 +129,14 @@ function vehicleModel(name: string) {
   return vehicleModels[name.toUpperCase().replaceAll(" ", "")] ?? "Modello da anagrafica 1C";
 }
 
+function positionKey(position: { latitude: number; longitude: number }) {
+  return `${position.latitude.toFixed(4)},${position.longitude.toFixed(4)}`;
+}
+
 export default function FleetPage() {
   const [data, setData] = useState<FleetData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [machineAddresses, setMachineAddresses] = useState<Record<string, string>>({});
   const [machineData, setMachineData] = useState<MachineData | null>(null);
   const [machinesLoading, setMachinesLoading] = useState(true);
   const [view, setView] = useState<FleetView>("vehicles");
@@ -200,6 +205,35 @@ export default function FleetPage() {
   const activeMachines = operatingMachines.filter((machine) => machine.active).length;
   const machineAlarms = operatingMachines.filter((machine) => machine.hasActiveAlarm).length;
 
+  useEffect(() => {
+    if (!operatingMachines.length) return;
+    let cancelled = false;
+    let cached: Record<string, string> = {};
+    try { cached = JSON.parse(window.localStorage.getItem("dalecom-machine-addresses-v1") || "{}"); } catch { cached = {}; }
+    setMachineAddresses((current) => ({ ...cached, ...current }));
+
+    void (async () => {
+      const positions = new Map<string, { latitude: number; longitude: number }>();
+      operatingMachines.forEach((machine) => {
+        if (machine.position) positions.set(positionKey(machine.position), machine.position);
+      });
+      for (const [key, position] of positions) {
+        if (cancelled || cached[key]) continue;
+        try {
+          const response = await fetch(`/api/geocode/reverse?lat=${position.latitude}&lon=${position.longitude}`);
+          const result = (await response.json()) as { success?: boolean; address?: string };
+          if (result.success && result.address) {
+            cached[key] = result.address;
+            setMachineAddresses((current) => ({ ...current, [key]: result.address! }));
+            window.localStorage.setItem("dalecom-machine-addresses-v1", JSON.stringify(cached));
+          }
+        } catch { /* La coordinata e la mappa restano comunque disponibili. */ }
+        await new Promise((resolve) => window.setTimeout(resolve, 1100));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [machineData]);
+
   return (
     <main className={styles.page}>
       <header className={styles.top}>
@@ -222,11 +256,11 @@ export default function FleetPage() {
       <section className={styles.shell}>
         <div className={machineStyles.viewTabs} role="tablist" aria-label="Tipo di flotta">
           <button role="tab" aria-selected={view === "vehicles"} className={view === "vehicles" ? machineStyles.activeTab : ""} onClick={() => changeView("vehicles")}><i>01</i><span><b>Mezzi targati</b><small>GPS, chilometri, carburante e viaggi</small></span></button>
-          <button role="tab" aria-selected={view === "machines"} className={view === "machines" ? machineStyles.activeTab : ""} onClick={() => changeView("machines")}><i>02</i><span><b>Macchine che lavorano</b><small>Turbosol, telemetria, sensori e allarmi</small></span></button>
+          <button role="tab" aria-selected={view === "machines"} className={view === "machines" ? machineStyles.activeTab : ""} onClick={() => changeView("machines")}><i>02</i><span><b>Macchine produttive</b><small>Turbosol, telemetria, sensori e allarmi</small></span></button>
         </div>
         <div className={styles.toolbar}>
           <div>
-            <strong>{view === "vehicles" ? "Mezzi targati · ultime 24 ore" : "Macchine operatrici · Attrezzatura 4.0"}</strong>
+            <strong>{view === "vehicles" ? "Mezzi targati · ultime 24 ore" : "Macchine produttive · Attrezzatura 4.0"}</strong>
             <span>{view === "vehicles" ? (data?.generatedAt ? `Aggiornato ${localTime(data.generatedAt)}` : data && !data.success ? "Telemetria live non collegata · analisi storica disponibile" : "Collegamento in corso…") : machineData?.generatedAt ? `Diaboard aggiornato ${localTime(machineData.generatedAt)}` : machinesLoading ? "Collegamento Diaboard in corso…" : machineData?.error ?? "Diaboard non disponibile"}</span>
           </div>
           {view === "vehicles" ? <button className={styles.refresh} onClick={() => void load()} disabled={loading}>{loading ? "Aggiorno…" : "Aggiorna dati"}</button> : <button className={styles.refresh} onClick={() => void loadMachines()} disabled={machinesLoading}>{machinesLoading ? "Aggiorno…" : "Aggiorna Diaboard"}</button>}
@@ -243,12 +277,13 @@ export default function FleetPage() {
               <div className={machineStyles.machineGrid}>
                 {operatingMachines.map((machine) => (
                   <article className={machineStyles.operatingMachine} key={machine.id}>
-                    <header><div><small>MACCHINA OPERATRICE · DIABOARD</small><h2>{machine.description}</h2><p>{machine.machineType} · {machine.clientCode ?? `ID ${machine.id}`}</p></div><span className={machine.active ? machineStyles.machineOnline : undefined}>{machine.active ? "Attiva" : "Non attiva"}</span></header>
+                    <header><div><small>MACCHINA PRODUTTIVA · DIABOARD</small><h2>{machine.description}</h2><p>{machine.machineType} · {machine.clientCode ?? `ID ${machine.id}`}</p></div><span className={machine.active ? machineStyles.machineOnline : undefined}>{machine.active ? "Attiva" : "Non attiva"}</span></header>
                     <div className={machineStyles.machineMetrics}>
                       <div><small>Codice azienda</small><b>{machine.companyCode ?? "—"}</b></div>
                       <div><small>Segnale GSM</small><b>{machine.signalStrength}</b></div>
                       <div><small>Dispositivo</small><b>{machine.legacy ? "Diaboard legacy" : "Diaboard nuovo"}</b></div>
                       <div><small>Posizione macchina</small><b>{machine.position ? `${machine.position.latitude.toFixed(4)}, ${machine.position.longitude.toFixed(4)}` : "Non disponibile"}</b></div>
+                      <div className={machineStyles.addressMetric}><small>Indirizzo rilevato</small><b>{machine.position ? machineAddresses[positionKey(machine.position)] ?? "Ricerca indirizzo…" : "Non disponibile"}</b></div>
                       <div><small>Stato telemetria</small><b>{machine.active ? "Dati negli ultimi 15 min" : "Nessun dato negli ultimi 15 min"}</b></div>
                       <div><small>Allarmi</small><b>{machine.hasActiveAlarm ? "Allarme attivo" : "Nessun allarme attivo"}</b></div>
                     </div>

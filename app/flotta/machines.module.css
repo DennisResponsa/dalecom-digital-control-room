@@ -48,6 +48,8 @@
 .machineMetrics small, .machineMetrics b { display: block; }
 .machineMetrics small { color: #748a95; font-size: 8px; text-transform: uppercase; letter-spacing: .07em; font-weight: 850; }
 .machineMetrics b { margin-top: 6px; color: #173646; font-size: 12px; }
+.machineMetrics .addressMetric { grid-column: span 2; }
+.machineMetrics .addressMetric b { line-height: 1.45; }
 .machineMap { margin-top: 3px; }
 .machineMap iframe { height: 210px; }
 .operatingMachine > footer { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 14px 17px; background: #edf5f7; color: #607985; font-size: 9px; }
