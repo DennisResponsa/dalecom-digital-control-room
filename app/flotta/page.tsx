@@ -62,6 +62,15 @@ type MachineData = {
 const number = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 1 });
 const fuelPrice = new Intl.NumberFormat("it-IT", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 
+const vehicleModels: Record<string, string> = {
+  HC605EZ: "Fiat Doblò · 5 posti · 100 CV",
+  GY960NP: "Iveco AD410T · Autobetoniera Cifa · 4 assi",
+  HC765AW: "Iveco AD410T · Autobetoniera Cifa",
+  "...3PROVA": "Unità prova Wialon",
+  "...4PROVA": "Unità prova Wialon",
+  "...5PROVA": "Unità prova Wialon",
+};
+
 const hc605Incident = {
   vehicle: "HC605EZ",
   occurredAt: "2026-09-08T04:03:57.000Z",
@@ -114,6 +123,10 @@ function mapUrl(position: { latitude: number; longitude: number }) {
 
 function externalMapUrl(position: { latitude: number; longitude: number }) {
   return `https://www.google.com/maps?q=${position.latitude},${position.longitude}`;
+}
+
+function vehicleModel(name: string) {
+  return vehicleModels[name.toUpperCase().replaceAll(" ", "")] ?? "Modello da anagrafica 1C";
 }
 
 export default function FleetPage() {
@@ -239,6 +252,20 @@ export default function FleetPage() {
                       <div><small>Stato telemetria</small><b>{machine.active ? "Dati negli ultimi 15 min" : "Nessun dato negli ultimi 15 min"}</b></div>
                       <div><small>Allarmi</small><b>{machine.hasActiveAlarm ? "Allarme attivo" : "Nessun allarme attivo"}</b></div>
                     </div>
+                    {machine.position ? (
+                      <div className={`${styles.mapPanel} ${machineStyles.machineMap}`}>
+                        <div className={styles.mapTitle}>
+                          <div><small>POSIZIONE MACCHINA</small><strong>Mappa dell’ultima coordinata Diaboard</strong></div>
+                          <span>{machine.position.latitude.toFixed(4)}, {machine.position.longitude.toFixed(4)}</span>
+                        </div>
+                        <iframe
+                          title={`Posizione macchina ${machine.description} ${machine.id}`}
+                          src={mapUrl(machine.position)}
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                    ) : null}
                     <footer><span>{machine.position ? <a href={externalMapUrl(machine.position)} target="_blank" rel="noreferrer">Apri posizione ↗</a> : "Posizione non trasmessa"}</span><a href="/officina">Apri manutenzioni →</a></footer>
                   </article>
                 ))}
@@ -359,7 +386,10 @@ export default function FleetPage() {
                 {data.vehicles?.map((vehicle) => (
                   <article className={styles.vehicle} key={vehicle.name}>
                     <div className={styles.vehicleHead}>
-                      <h2>{vehicle.name}</h2>
+                      <div className={styles.vehicleIdentity}>
+                        <h2>{vehicle.name}</h2>
+                        <span>{vehicleModel(vehicle.name)}</span>
+                      </div>
                       <span className={`${styles.status} ${vehicle.online ? "" : styles.offline}`}>{vehicle.online ? "Online" : "Non aggiornato"}</span>
                     </div>
                     <div className={styles.metrics}>
